@@ -15,6 +15,7 @@ namespace vax.vaxqript {
                 if( executable != null )
                     throw new NotSupportedException( "executable element '" + executable + "' already present" );
                 executable = iexe;
+                return;
             }
             IEvaluable ieva = syntaxElement as IEvaluable;
             if( ieva == null ) {
@@ -23,7 +24,17 @@ namespace vax.vaxqript {
             arguments.Add( ieva );
         }
 
-        public dynamic[] prepareArguments() {
+        public void addAll ( params ISyntaxElement[] syntaxElements ) {
+            foreach( ISyntaxElement syntaxElement in syntaxElements )
+                add( syntaxElement );
+        }
+
+        public void clear () {
+            arguments.Clear();
+            executable = null;
+        }
+
+        public dynamic[] prepareArguments () {
             dynamic[] arr = new dynamic[arguments.Count];
             for( int i = 0; i < arguments.Count; i++ ) {
                 arr[i] = arguments[i].eval();
@@ -31,8 +42,12 @@ namespace vax.vaxqript {
             return arr;
         }
 
+        public override string ToString () {
+            return executable + " " + string.Join( " ", arguments );
+        }
+
         public object eval () {
-            return executable.exec( prepareArguments() );
+            return ( executable == null ) ? null : executable.exec( prepareArguments() );
         }
     }
 }

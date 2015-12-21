@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Text;
+using System.Collections.Generic;
 
 namespace vax.vaxqript {
     public abstract class Tokenizer {
@@ -10,9 +12,13 @@ namespace vax.vaxqript {
             PARSER_OP_CHAR = '#',
             COMMENT_CHAR = '/',
             COMMENT_MULTILINE_CHAR = '*',
-            GROUP_OPEN_CHAR = '{',
-            GROUP_CLOSED_CHAR = '}'
-        ;
+
+            BLOCK_OPEN_CHAR_1 = '{',
+            BLOCK_OPEN_CHAR_2 = '(',
+            BLOCK_CLOSED_CHAR_1 = '}',
+            BLOCK_CLOSED_CHAR_2 = ')',
+            BLOCK_INLINE_CHAR = ';',
+            SEPARATOR_CHAR = ',';
 
         protected readonly static char[] //
             known_newline = { '\n', '\r' },
@@ -23,7 +29,7 @@ namespace vax.vaxqript {
         },
             known_numeric_char = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' },
             known_numeric_char_ext = { '.', 'E', 'd', 'f' },
-            known_identifier_char_ext = { '_', '$', '.' };
+            known_identifier_char_ext = { '_', '$'/*, '.'*/ };
         //known_flow_control_char = { '@', ';', ',', '#', '(', ')', '[', ']', '{', '}' };
         protected readonly static int[] // note: this allows for easy introduction of higher radices (e.g. hex digits)
             known_numeric_values = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 },
@@ -93,7 +99,7 @@ namespace vax.vaxqript {
         }
 
         protected bool skipWhitespace () {
-            for(; pos != maxPos; pos++ ) {
+            for( ; pos != maxPos; pos++ ) {
                 if( !is_whitespace[inputString[pos]] )
                     return true;
             }
@@ -103,7 +109,7 @@ namespace vax.vaxqript {
 
 
         protected bool findEndingWhitespace () {
-            for(; endPos != maxPos; endPos++ ) {
+            for( ; endPos != maxPos; endPos++ ) {
                 if( is_whitespace[inputString[endPos]] )
                     return true;
             }
@@ -112,16 +118,7 @@ namespace vax.vaxqript {
         }
 
         protected bool findEndingNewline () {
-            for(; endPos != maxPos; endPos++ ) {
-                if( is_newline[inputString[endPos]] )
-                    return true;
-            }
-            endPos--;
-            return false;
-        }
-
-        protected bool findEndingQuote () {
-            for(; endPos != maxPos; endPos++ ) {
+            for( ; endPos != maxPos; endPos++ ) {
                 if( is_newline[inputString[endPos]] )
                     return true;
             }
@@ -132,12 +129,56 @@ namespace vax.vaxqript {
         protected void processParserOp ( string s ) {
         }
 
-        public Token getNextToken () {
+        private char unescape ( char c ) {
+            // cross-compatible with Java's escape sequences
+            switch (c) {
+            /* those two are seldom used and Java incompatible
+            case 'a': // alert/alarm (bell)
+                return '\a';
+            case 'v': // vertical tab
+                return '\v';
+            */
+            // seldom used, but compatible
+            case 'b': // backspace
+                return '\b';
+            case 'f': // form feed
+                return '\f';
+            // common escape sequences
+            case 't': // tab
+                return '\t';
+            case 'n': // newline
+                return '\n';
+            case 'r': // carriage return
+                return '\r';
+            case '\\': // backslash (escape char itself)
+                return '\\';
+            case '\'': // single quote
+                return '\'';
+            case '"': // double quote
+                return '"';
+            case '0': // NULL value (0x0)
+                return '\0';
+            // TODO support full hex escape set maybe?
+            }
+            throw new InvalidOperationException( "uknown escape sequence '\\" + c + "'" );
+        }
+
+        public LinearSyntax createLinearSyntax () {
+            var list = new LinearSyntax();
+            for( var t = getNextSyntaxElement(); t != null; t = getNextSyntaxElement() ) {
+                list.Add( t );
+            }
+            return list;
+        }
+
+        public ISyntaxElement getNextSyntaxElement () {
             int beginPos;
             while( pos < maxPos ) {
                 if( !skipWhitespace() )
                     return null;
                 char firstChar = inputString[pos];
+                // "special" cases first
+                endPos = pos + 1;
                 if( pos < maxPos - 1 ) {
                     switch (firstChar) {
                     case COMMENT_CHAR:
@@ -150,34 +191,61 @@ namespace vax.vaxqript {
                                 return new CommentToken( inputString.Substring( beginPos, endPos - beginPos + 1 ) );
                             else
                             */
-                                continue;
+                            continue;
+                        /*
                         case COMMENT_MULTILINE_CHAR:
                             int multilineCommentNesting = 1;
                             //while ( endPos )
                             // process nested comments, then
-                            /*
+
                             beginPos = pos;
                             pos = endPos + 1;
                             if( keepComments )
                                 return new CommentToken( inputString.Substring( beginPos, endPos - beginPos + 1 ) );
                             else
-                                */
+                                
                             continue;
+                            */
                         }
                         break;
                     case QUOTE_CHAR:
-                        if( !findEndingQuote() ) {
-                            throw new InvalidOperationException( "stray opening quote found near EOF" );
+                        StringBuilder sb = new StringBuilder();
+                        pos++;
+                        endPos++;
+                        for( ; endPos != maxPos; endPos++ ) {
+                            if( inputString[endPos] == QUOTE_CHAR ) {
+                                beginPos = pos;
+                                pos = endPos + 1;
+                                return new ValueWrapper( inputString.Substring( beginPos, endPos - beginPos ) );
+                            } else if( inputString[endPos] == ESCAPE_CHAR ) {
+                                endPos++;
+                                if( endPos == maxPos )
+                                    throw new InvalidOperationException( "stray escape char found near EOF" );
+                                sb.Append( unescape( inputString[endPos] ) );
+                            } else {
+                                sb.Append( inputString[endPos] );
+                            }
                         }
-                        beginPos = pos;
-                        pos = endPos + 1;
-                        return new StringLiteralToken( inputString.Substring( beginPos, endPos - beginPos + 1 ) );
-                        break;
+                        throw new InvalidOperationException( "stray opening quote found near EOF" );
                     case PARSER_OP_CHAR:
                         findEndingNewline();
                         processParserOp( inputString.Substring( pos, endPos - pos + 1 ) );
                         pos = endPos + 1;
                         continue;
+                    case BLOCK_OPEN_CHAR_1:
+                    case BLOCK_OPEN_CHAR_2:
+                        pos++;
+                        endPos++;
+                        return new FlowOperator( Flow.Down );
+                    case BLOCK_CLOSED_CHAR_1:
+                    case BLOCK_CLOSED_CHAR_2:
+                        pos++;
+                        endPos++;
+                        return new FlowOperator( Flow.Up );
+                    case BLOCK_INLINE_CHAR:
+                        pos++;
+                        endPos++;
+                        return new FlowOperator( Flow.UpDown );
                     }
                 } else {
                     switch (firstChar) {
@@ -186,14 +254,18 @@ namespace vax.vaxqript {
                     case PARSER_OP_CHAR:
                         throw new InvalidOperationException( "stray '" + firstChar + "' found near EOF" );
                     }
-                
                 }
-                endPos = pos + 1;
+                // "regular" cases
+                //if( firstChar )
+                if( !findEndingWhitespace() ) {
+                    beginPos = pos;
+                    pos = endPos + 1;
+                } else {
+                    beginPos = pos;
+                    pos = endPos;
+                }
 
-                beginPos = pos;
-                pos = endPos;
-
-                return Token.createToken( inputString.Substring( beginPos, endPos - beginPos + 1 /*endPos - 1*/ ) );
+                return Identifier.forName( inputString.Substring( beginPos, endPos - beginPos + 1 /*endPos - 1*/ ) );
             }
             return null;
             // NOTE: substring(int,int) takes (begin,end) in Java, but (begin,length) in c# !

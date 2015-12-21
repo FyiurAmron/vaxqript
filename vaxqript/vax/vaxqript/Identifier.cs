@@ -27,7 +27,7 @@ namespace vax.vaxqript {
         }
 
         public override string ToString () {
-            return "[Identifier] " + Text;
+            return Text;
         }
 
         public static Identifier forName ( string name ) {

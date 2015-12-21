@@ -30,7 +30,7 @@ namespace vax.vaxqript {
         public static dynamic applyUnaryOperator ( string opString, dynamic argument ) {
             IScriptOperatorOverload isoo = argument as IScriptOperatorOverload;
             if( isoo != null ) {
-                ValueWrapper ret = isoo.process( opString, argument );
+                ValueWrapper ret = isoo.processLeft( opString, argument );
                 if( ret != null )
                     return ret.Value;
             }
@@ -41,12 +41,22 @@ namespace vax.vaxqript {
             dynamic result = arguments[0];
             var operatorLambda = OperatorMap.getNaryOperator( opString );
             int i = 1;
-            for( ; i < arguments.Length; i++ ) {
+            for(; i < arguments.Length; i++ ) {
                 IScriptOperatorOverload isoo = result as IScriptOperatorOverload;
                 if( isoo != null ) {
-                    ValueWrapper ret = isoo.process( opString, arguments[i] );
-                    if( ret != null )
+                    ValueWrapper ret = isoo.processLeft( opString, arguments[i] );
+                    if( ret != null ) {
                         result = ret.Value;
+                        continue;
+                    }
+                }
+                isoo = arguments[i] as IScriptOperatorOverload;
+                if( isoo != null ) {
+                    ValueWrapper ret = isoo.processRight( opString, arguments[i] );
+                    if( ret != null ) {
+                        result = ret.Value;
+                        continue;
+                    }
                 }
                 result = operatorLambda( result, arguments[i] );
             }

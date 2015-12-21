@@ -41,7 +41,6 @@
     <Compile Include="vax\vaxqript\Main.cs" />
     <Compile Include="vax\vaxqript\Engine.cs" />
     <Compile Include="vax\vaxqript\IEvaluable.cs" />
-    <Compile Include="vax\vaxqript\token\TokenList.cs" />
     <Compile Include="vax\vaxqript\IntValue.cs" />
     <Compile Include="vax\vaxqript\FloatValue.cs" />
     <Compile Include="vax\vaxqript\OperatorMap.cs" />
@@ -53,6 +52,10 @@
     <Compile Include="vax\vaxqript\token\Operator.cs" />
     <Compile Include="vax\vaxqript\ISyntaxElement.cs" />
     <Compile Include="vax\vaxqript\token\IExecutable.cs" />
+    <Compile Include="vax\vaxqript\token\FlowOperator.cs" />
+    <Compile Include="vax\vaxqript\Flow.cs" />
+    <Compile Include="vax\vaxqript\token\LinearSyntax.cs" />
+    <Compile Include="vax\vaxqript\UnknownElement.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

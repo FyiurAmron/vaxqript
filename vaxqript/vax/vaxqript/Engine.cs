@@ -8,7 +8,11 @@ namespace vax.vaxqript {
         public Engine () {
         }
         */
-        public static Dictionary<Identifier, object> varMap = new Dictionary<Identifier,object>();
+        public static Dictionary<Identifier, object> varMap = new Dictionary<Identifier,object>() {
+            { new Identifier( "true" ), true },
+            { new Identifier( "false" ), false },
+            //{ new Identifier( "Inf" ), float.PositiveInfinity },
+        };
 
         public static bool IsNumericType ( this object o ) {   
             switch (Type.GetTypeCode( o.GetType() )) {

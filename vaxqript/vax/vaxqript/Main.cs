@@ -4,14 +4,7 @@ using System.Collections.Generic;
 
 namespace vax.vaxqript {
     class MainClass {
-        public static void Main ( string[] args ) {
-            /*
-            var st = new StringTokenizer( " test slowo xlowo3 aaa ." );
-
-            for( Token t = st.getNextToken(); t != null; t = st.getNextToken() ) {
-                Console.WriteLine( t );
-            }
-            */
+        public static void test1 () {
             try {
                 Console.WriteLine( Operator.applyGenericOperator( "+", "test", "owy", 42 ) );
             } catch (Exception ex) {
@@ -82,11 +75,42 @@ namespace vax.vaxqript {
                 Console.WriteLine( ex.Message );
             }
 
+            Console.WriteLine( "=======================" );
+
+            CodeBlock cb1 = new CodeBlock(), cb2 = new CodeBlock();
+            cb1.addAll( new Operator( "+" ), new ValueWrapper( 42 ), new ValueWrapper( 2 ) );
+            cb2.addAll( new Operator( "-" ), cb1, new ValueWrapper( 46 ), new ValueWrapper( new AddTestClass() ) );
+            Console.WriteLine( cb2.eval() );
+            cb2.clear();
+            cb2.addAll( new Operator( "-" ), cb1, new ValueWrapper( 46 ) );
+            Console.WriteLine( cb2.eval() );
+            cb2.clear();
+            cb2.addAll( new Operator( ":-)" ), cb1, new ValueWrapper( new AddTestClass() ) );
+            Console.WriteLine( cb2.eval() );
+            cb2.clear();
+            cb2.addAll( new Operator( ":-)" ), new ValueWrapper( new AddTestClass() ), cb1 );
+            Console.WriteLine( cb2.eval() );
+        }
+
+        public static void test2 () {
+            object[] arr = { "{", "+", 4, 2, "{", "*", "3", "3", "}", "}" };
+        }
+
+        public static void test3 () {
+            var st = new StringTokenizer( " test {} ; //slowo xlowo3 aaa .\nslowo xlowo3 aaa . \"strin\" 123" );
+
+            Console.WriteLine( st.createLinearSyntax().debugToString() );
+        }
+
+        public static void Main ( string[] args ) {
+            //test1(); // completed
+            //test2(); // TODO
+            test3();
             Console.ReadKey();
         }
     }
 
-    class AddTestClass {
+    class AddTestClass : IScriptOperatorOverload {
         public static int operator + ( AddTestClass a1, AddTestClass a2 ) {
             return 42;
         }
@@ -95,5 +119,22 @@ namespace vax.vaxqript {
             return 13;
         }
 
+        public static int operator - ( int a1, AddTestClass a2 ) {
+            return 13;
+        }
+
+        public ValueWrapper processLeft ( string opString, dynamic argument ) {
+            if( opString.Equals( ":-)" ) ) {
+                return new ValueWrapper( 9001 );
+            }
+            return null;
+        }
+
+        public ValueWrapper processRight ( string opString, dynamic argument ) {
+            if( opString.Equals( ":-)" ) ) {
+                return new ValueWrapper( 3.14 );
+            }
+            return null;
+        }
     }
 }
