@@ -1,7 +1,7 @@
 ﻿using System;
 
 namespace vax.vaxqript {
-    public class Identifier : IEvaluable {
+    public class Identifier : IEvaluable { // TODO implement IExecutable
         public string Text;
 
         public Identifier ( string text ) {
@@ -31,7 +31,7 @@ namespace vax.vaxqript {
         }
 
         public static Identifier forName ( string name ) {
-            return new Identifier( name );
+            return new Identifier( name ); // TODO implement instance cache (map)
         }
     }
 }

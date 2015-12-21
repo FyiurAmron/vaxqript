@@ -41,7 +41,7 @@ namespace vax.vaxqript {
             dynamic result = arguments[0];
             var operatorLambda = OperatorMap.getNaryOperator( opString );
             int i = 1;
-            for(; i < arguments.Length; i++ ) {
+            for( ; i < arguments.Length; i++ ) {
                 IScriptOperatorOverload isoo = result as IScriptOperatorOverload;
                 if( isoo != null ) {
                     ValueWrapper ret = isoo.processLeft( opString, arguments[i] );
@@ -61,6 +61,14 @@ namespace vax.vaxqript {
                 result = operatorLambda( result, arguments[i] );
             }
             return result;
+        }
+
+        public static Operator forName ( string name ) {
+            return new Operator( name ); // TODO implement instance cache (map)
+        }
+
+        public override string ToString () {
+            return OperatorString;
         }
     }
 }

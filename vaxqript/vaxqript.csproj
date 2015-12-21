@@ -36,31 +36,28 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="vax\vaxqript\token\Token.cs" />
-    <Compile Include="vax\vaxqript\token\Tokenizer.cs" />
     <Compile Include="vax\vaxqript\Main.cs" />
     <Compile Include="vax\vaxqript\Engine.cs" />
     <Compile Include="vax\vaxqript\IEvaluable.cs" />
-    <Compile Include="vax\vaxqript\IntValue.cs" />
-    <Compile Include="vax\vaxqript\FloatValue.cs" />
     <Compile Include="vax\vaxqript\OperatorMap.cs" />
     <Compile Include="vax\vaxqript\Identifier.cs" />
     <Compile Include="vax\vaxqript\IScriptOperatorOverload.cs" />
     <Compile Include="vax\vaxqript\CodeBlock.cs" />
     <Compile Include="vax\vaxqript\CodeTreeBuilder.cs" />
     <Compile Include="vax\vaxqript\ValueWrapper.cs" />
-    <Compile Include="vax\vaxqript\token\Operator.cs" />
     <Compile Include="vax\vaxqript\ISyntaxElement.cs" />
-    <Compile Include="vax\vaxqript\token\IExecutable.cs" />
-    <Compile Include="vax\vaxqript\token\FlowOperator.cs" />
     <Compile Include="vax\vaxqript\Flow.cs" />
-    <Compile Include="vax\vaxqript\token\LinearSyntax.cs" />
     <Compile Include="vax\vaxqript\UnknownElement.cs" />
+    <Compile Include="vax\vaxqript\syntax\Operator.cs" />
+    <Compile Include="vax\vaxqript\syntax\IExecutable.cs" />
+    <Compile Include="vax\vaxqript\syntax\FlowOperator.cs" />
+    <Compile Include="vax\vaxqript\syntax\LinearSyntax.cs" />
+    <Compile Include="vax\vaxqript\syntax\Lexer.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
     <Folder Include="vax\" />
     <Folder Include="vax\vaxqript\" />
-    <Folder Include="vax\vaxqript\token\" />
+    <Folder Include="vax\vaxqript\syntax\" />
   </ItemGroup>
 </Project>

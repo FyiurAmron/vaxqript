@@ -97,7 +97,7 @@ namespace vax.vaxqript {
         }
 
         public static void test3 () {
-            var st = new StringTokenizer( " test {} ; //slowo xlowo3 aaa .\nslowo xlowo3 aaa . \"strin\" 123" );
+            var st = new StringLexer( " test; 42 { + ++ += //slowo xlowo3 aaa } .\nslowo xlowo3 aaa.} \"strin\" 123 3.14" );
 
             Console.WriteLine( st.createLinearSyntax().debugToString() );
         }
