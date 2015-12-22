@@ -94,81 +94,8 @@ namespace vax.vaxqript {
         }
 
         public abstract LinearSyntax createLinearSyntax ();
-    }
 
-    public class StringLexer : Lexer {
-        protected string inputString;
-        protected Engine engine;
-        protected int pos, endPos, maxPos;
-
-        public StringLexer ( string inputString, Engine engine ) {
-            this.inputString = inputString;
-            this.engine = engine;
-            pos = 0;
-            maxPos = inputString.Length;
-        }
-
-        protected bool skipWhitespace () {
-            for(; pos != maxPos; pos++ ) {
-                if( !is_whitespace[inputString[pos]] )
-                    return true;
-            }
-            pos--;
-            return false;
-        }
-
-
-        protected bool findEndingWhitespace () {
-            for(; endPos != maxPos; endPos++ ) {
-                if( is_whitespace[inputString[endPos]] )
-                    return true;
-            }
-            endPos--;
-            return false;
-        }
-
-        protected bool findEndingNewline () {
-            for(; endPos != maxPos; endPos++ ) {
-                if( is_newline[inputString[endPos]] )
-                    return true;
-            }
-            endPos--;
-            return false;
-        }
-
-        protected bool findIdentifierEnd () {
-            for(; endPos != maxPos; endPos++ ) {
-                if( !is_identifier[inputString[endPos]] )
-                    return true;
-            }
-            endPos--;
-            return false;
-        }
-
-        protected bool findNumberEnd () {
-            for(; endPos != maxPos; endPos++ ) {
-                if( !is_numeric_ext[inputString[endPos]] )
-                    return true;
-            }
-            endPos--;
-            return false;
-        }
-
-        protected bool findOperatorEnd () {
-            for(; endPos != maxPos; endPos++ ) {
-                char input = inputString[endPos];
-                if( is_whitespace[input] || is_identifier[input] || is_numeric[input]
-                    || is_special[input] )
-                    return true;
-            }
-            endPos--;
-            return false;
-        }
-
-        protected void processParserOp ( string s ) {
-        }
-
-        private char unescape ( char c ) {
+        protected static char unescape ( char c ) {
             // cross-compatible with Java's escape sequences
             switch (c) {
             /* those two are seldom used and Java incompatible
@@ -200,6 +127,82 @@ namespace vax.vaxqript {
             // TODO support full hex escape set maybe?
             }
             throw new InvalidOperationException( "uknown escape sequence '\\" + c + "'" );
+        }
+
+    }
+
+    public class StringLexer : Lexer {
+        protected string inputString;
+        protected Engine engine;
+        protected int pos, endPos, maxPos;
+
+        public StringLexer ( string inputString, Engine engine ) {
+            this.inputString = inputString;
+            this.engine = engine;
+            pos = 0;
+            maxPos = inputString.Length;
+        }
+
+        protected bool skipWhitespace () {
+            for( ; pos != maxPos; pos++ ) {
+                if( !is_whitespace[inputString[pos]] )
+                    return true;
+            }
+            pos--;
+            return false;
+        }
+
+
+        protected bool findEndingWhitespace () {
+            for( ; endPos != maxPos; endPos++ ) {
+                if( is_whitespace[inputString[endPos]] )
+                    return true;
+            }
+            endPos--;
+            return false;
+        }
+
+        protected bool findEndingNewline () {
+            for( ; endPos != maxPos; endPos++ ) {
+                if( is_newline[inputString[endPos]] )
+                    return true;
+            }
+            endPos--;
+            return false;
+        }
+
+        protected bool findIdentifierEnd () {
+            for( ; endPos != maxPos; endPos++ ) {
+                if( !is_identifier[inputString[endPos]] )
+                    return true;
+            }
+            endPos--;
+            return false;
+        }
+
+        protected bool findNumberEnd () {
+            for( ; endPos != maxPos; endPos++ ) {
+                if( !is_numeric_ext[inputString[endPos]] )
+                    return true;
+            }
+            endPos--;
+            return false;
+        }
+
+        protected bool findOperatorEnd () {
+            for( ; endPos != maxPos; endPos++ ) {
+                char input = inputString[endPos];
+                if( is_whitespace[input] || is_identifier[input] || is_numeric[input]
+                    || is_special[input] )
+                    return true;
+            }
+            endPos--;
+            return false;
+        }
+
+        protected void processParserOp ( string s ) {
+            if( s.ToLower().Equals( "exit" ) )
+                throw new Exception( "exit" );
         }
 
         public override LinearSyntax createLinearSyntax () {
@@ -251,7 +254,7 @@ namespace vax.vaxqript {
                         StringBuilder sb = new StringBuilder();
                         pos++;
                         endPos++;
-                        for(; endPos != maxPos; endPos++ ) {
+                        for( ; endPos != maxPos; endPos++ ) {
                             if( inputString[endPos] == QUOTE_CHAR ) {
                                 beginPos = pos;
                                 pos = endPos + 1;
@@ -340,7 +343,7 @@ namespace vax.vaxqript {
                     }
 
                     return Identifier.valueOf( inputString.Substring( beginPos, endPos - beginPos /*endPos - 1*/ ) );
-                } else {
+                } else { // TODO distinguish the special case of -/+ prefixing a number here
                     if( !findOperatorEnd() ) {
                         beginPos = pos;
                         endPos++;

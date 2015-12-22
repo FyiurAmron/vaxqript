@@ -145,7 +145,14 @@ namespace vax.vaxqript {
                 test3( s, engine ); // completed
             }
             
-            Console.ReadKey();
+
+            for( string line = Console.ReadLine(); !line.StartsWith( "\n" ); line = Console.ReadLine() ) {
+                try {
+                    Console.WriteLine( ">>> " + engine.eval( line ) );
+                } catch( Exception ex ) {
+                    Console.WriteLine( ex );
+                }
+            }
         }
     }
 

@@ -10,10 +10,6 @@ namespace vax.vaxqript {
 
         public Func<dynamic, dynamic, dynamic> NaryLambda { get; private set; }
 
-        /*
-        public Operator ( string operatorString ) : this( operatorString, defaultHoldType( operatorString ) ) {
-        }
-        */
         public Operator ( string operatorString, Func<dynamic, dynamic> unaryLambda,  Func<dynamic, dynamic, dynamic> naryLambda )
             : this( operatorString, unaryLambda, naryLambda, HoldType.HoldNone ) {
         }
@@ -25,23 +21,9 @@ namespace vax.vaxqript {
             NaryLambda = naryLambda;
         }
 
-        // DEBUG for c-tor! use a proper op cache later on
-        /*
-        public static HoldType defaultHoldType ( string operatorString ) {
-            return ( operatorString.IndexOf( '=' ) != -1 || operatorString.Equals( "++" ) || operatorString.Equals( "--" ) )
-                ? HoldType.HoldFirst : HoldType.HoldNone;
-        }
-        */
-
         public object exec ( Engine engine, params dynamic[] arguments ) {
             return engine.applyGenericOperator( this, arguments );
         }
-
-        /*
-        public static Operator valueOf ( string name ) {
-            return new Operator( name ); // TODO implement instance cache (map)
-        }
-        */
 
         public override bool Equals ( object obj ) {
             if( obj == null )
