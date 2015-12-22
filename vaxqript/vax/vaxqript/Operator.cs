@@ -78,6 +78,10 @@ namespace vax.vaxqript {
             return OperatorString.Equals( op.OperatorString );
         }
 
+        public override int GetHashCode () {
+            return OperatorString.GetHashCode();
+        }
+
         public override string ToString () {
             return OperatorString;
         }

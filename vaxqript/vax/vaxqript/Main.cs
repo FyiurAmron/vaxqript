@@ -98,18 +98,7 @@ namespace vax.vaxqript {
             Console.WriteLine( sl.createLinearSyntax().debugToString() );
         }
 
-        public static void test3 () {
-            //string input = "{ + 4 1 { * 3 11 } }";
-            //string input = "{ + 4 2 { * 3 3";
-            //string input = "{ 4 + 2 + ( 3 * 3 )";
-            //string input = "4 + 2 + ( 3 * 3 )";
-            //string input = "4 + 2 + ( 3.1 * 3 )";
-            //string input = "{ 4 + 2 + ( 3.1 * 3 ); 10.5; foo * 2";
-            string input = @"{
-                i = 3;
-                i++;
-            }";
-  
+        public static void test3 ( string input ) {
             var sl = new StringLexer( input );
 
             LinearSyntax ls = sl.createLinearSyntax();
@@ -125,7 +114,27 @@ namespace vax.vaxqript {
         public static void Main ( string[] args ) {
             test1(); // completed
             test2(); // completed
-            test3(); // completed
+            string[] inputs = {
+                "{ + 4 1 { * 3 11 } }",
+                "{ + 4 2 { * 3 3",
+                "{ 4 + 2 + ( 3 * 3 )",
+                "4 + 2 + ( 3 * 3 )",
+                "4 + 2 + ( 3.1 * 3 )",
+                "{ 4 + 2 + ( 3.1 * 3 ); 10.5; foo * 2",
+                @"{
+                i = 3;
+                i++;
+            }",
+                @"{
+                i = 3;
+                i = 10;
+                i + 7;
+            }"
+            };
+            foreach( string s in inputs ) {
+                test3( s ); // completed
+            }
+            
             Console.ReadKey();
         }
     }

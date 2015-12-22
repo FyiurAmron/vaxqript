@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace vax.vaxqript {
     public class CodeBlock : IEvaluable {
-/*, IExecutable*/
+        /*, IExecutable*/
         private List<IEvaluable> arguments = new List<IEvaluable>();
         private IExecutable executable;
 
@@ -44,7 +44,15 @@ namespace vax.vaxqript {
 
         public dynamic[] prepareArguments () {
             dynamic[] arr = new dynamic[arguments.Count];
-            for( int i = 0; i < arguments.Count; i++ ) {
+            // check for HoldFirst
+            //if ( executable.isHoldFirst() ) // TODO etc, kludged below:
+            Operator op = executable as Operator;
+            int i = 0;
+            if( op != null && op.ToString().Equals( "=" ) ) {
+                arr[0] = arguments[0];
+                i++;
+            }
+            for(; i < arguments.Count; i++ ) {
                 arr[i] = arguments[i].eval();
             }
             return arr;
