@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 
 namespace vax.vaxqript {
-    public class CodeBlock : IEvaluable {/*, IExecutable*/
+    public class CodeBlock : IEvaluable {
+/*, IExecutable*/
         private List<IEvaluable> arguments = new List<IEvaluable>();
         private IExecutable executable;
 
@@ -63,9 +64,11 @@ namespace vax.vaxqript {
             if( executable != null ) {
                 return executable.exec( prepareArguments() );
             }
-            object ret = null;
+            object ret = null, ret2;
             foreach( IEvaluable ie in arguments ) {
-                ret = ie.eval();
+                ret2 = ie.eval();
+                if( ret2 != null )
+                    ret = ret2;
             }
             return ret;
         }

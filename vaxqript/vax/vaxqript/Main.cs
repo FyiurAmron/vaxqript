@@ -104,7 +104,11 @@ namespace vax.vaxqript {
             //string input = "{ 4 + 2 + ( 3 * 3 )";
             //string input = "4 + 2 + ( 3 * 3 )";
             //string input = "4 + 2 + ( 3.1 * 3 )";
-            string input = "{ 4 + 2 + ( 3.1 * 3 ); 10.5; foo * 2";
+            //string input = "{ 4 + 2 + ( 3.1 * 3 ); 10.5; foo * 2";
+            string input = @"{
+                i = 3;
+                i++;
+            }";
   
             var sl = new StringLexer( input );
 

@@ -9,7 +9,12 @@ namespace vax.vaxqript {
         }
 
         public  object eval () {
-            return Engine.varMap[this];
+            object o;
+            if( Engine.varMap.TryGetValue( this, out o ) ) {
+                return o;
+            }
+            return this;
+            //return  ? o : this;
         }
 
         public override bool Equals ( object obj ) {
