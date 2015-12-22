@@ -9,6 +9,18 @@ namespace vax.vaxqript {
             Flow = flow;
         }
 
+        public static FlowOperator valueOf( Flow flow ) { // TODO add cache here
+            switch (flow) {
+            case Flow.Down:
+                return new FlowOperator( flow );
+            case Flow.Up:
+                return new FlowOperator( flow );
+            case Flow.UpDown:
+                return new FlowOperator( flow );
+            }
+            throw new InvalidOperationException( "uknown Flow '" + flow + "'" );
+        }
+
         public static string ToString ( Flow flow ) {
             switch (flow) {
             case Flow.Down:

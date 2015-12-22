@@ -30,7 +30,7 @@ namespace vax.vaxqript {
             return Text;
         }
 
-        public static Identifier forName ( string name ) {
+        public static Identifier valueOf ( string name ) {
             return new Identifier( name ); // TODO implement instance cache (map)
         }
     }

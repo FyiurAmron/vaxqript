@@ -29,7 +29,7 @@ namespace vax.vaxqript {
                 Console.WriteLine( ex.Message );
             }
 
-            Identifier fooI = Identifier.forName( "foo" );
+            Identifier fooI = Identifier.valueOf( "foo" );
 
             try {
                 Console.WriteLine( Operator.applyGenericOperator( "=", fooI, 9001 ) );
@@ -93,19 +93,35 @@ namespace vax.vaxqript {
         }
 
         public static void test2 () {
-            object[] arr = { "{", "+", 4, 2, "{", "*", "3", "3", "}", "}" };
+            var sl = new StringLexer( " test; 42 { + ++ += //slowo xlowo3 aaa } .\nslowo xlowo3 aaa.} \"strin\" 123 3.14" );
+
+            Console.WriteLine( sl.createLinearSyntax().debugToString() );
         }
 
         public static void test3 () {
-            var st = new StringLexer( " test; 42 { + ++ += //slowo xlowo3 aaa } .\nslowo xlowo3 aaa.} \"strin\" 123 3.14" );
+            //string input = "{ + 4 1 { * 3 11 } }";
+            //string input = "{ + 4 2 { * 3 3";
+            //string input = "{ 4 + 2 + ( 3 * 3 )";
+            //string input = "4 + 2 + ( 3 * 3 )";
+            //string input = "4 + 2 + ( 3.1 * 3 )";
+            string input = "{ 4 + 2 + ( 3.1 * 3 ); 10.5; foo * 2";
+  
+            var sl = new StringLexer( input );
 
-            Console.WriteLine( st.createLinearSyntax().debugToString() );
+            LinearSyntax ls = sl.createLinearSyntax();
+
+            Console.WriteLine( ls.ToString() );
+            Console.WriteLine( ls.debugToString() );
+            CodeBlock cn = ls.buildParseTree();
+            Console.WriteLine( cn );
+            object o = cn.eval();
+            Console.WriteLine( ( o == null ) ? "null" : o );
         }
 
         public static void Main ( string[] args ) {
-            //test1(); // completed
-            //test2(); // TODO
-            test3();
+            test1(); // completed
+            test2(); // completed
+            test3(); // completed
             Console.ReadKey();
         }
     }

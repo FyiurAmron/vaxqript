@@ -41,7 +41,7 @@ namespace vax.vaxqript {
             dynamic result = arguments[0];
             var operatorLambda = OperatorMap.getNaryOperator( opString );
             int i = 1;
-            for( ; i < arguments.Length; i++ ) {
+            for(; i < arguments.Length; i++ ) {
                 IScriptOperatorOverload isoo = result as IScriptOperatorOverload;
                 if( isoo != null ) {
                     ValueWrapper ret = isoo.processLeft( opString, arguments[i] );
@@ -63,8 +63,19 @@ namespace vax.vaxqript {
             return result;
         }
 
-        public static Operator forName ( string name ) {
+        public static Operator valueOf ( string name ) {
             return new Operator( name ); // TODO implement instance cache (map)
+        }
+
+        public override bool Equals ( object obj ) {
+            if( obj == null )
+                return false;
+            if( obj == this )
+                return true;
+            Operator op = obj as Operator;
+            if( op == null )
+                return false;
+            return OperatorString.Equals( op.OperatorString );
         }
 
         public override string ToString () {

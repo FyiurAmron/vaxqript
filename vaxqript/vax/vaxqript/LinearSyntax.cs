@@ -25,6 +25,14 @@ namespace vax.vaxqript {
             }
             return sb.ToString();
         }
+
+        public CodeBlock buildParseTree() {
+            CodeTreeBuilder ctb = new CodeTreeBuilder();
+            foreach( var elem in ElementList ) {
+                ctb.consume( elem );
+            }
+            return ctb.getRoot();
+        }
     }
 
 

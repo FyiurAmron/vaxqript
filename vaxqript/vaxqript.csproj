@@ -48,16 +48,15 @@
     <Compile Include="vax\vaxqript\ISyntaxElement.cs" />
     <Compile Include="vax\vaxqript\Flow.cs" />
     <Compile Include="vax\vaxqript\UnknownElement.cs" />
-    <Compile Include="vax\vaxqript\syntax\Operator.cs" />
-    <Compile Include="vax\vaxqript\syntax\IExecutable.cs" />
-    <Compile Include="vax\vaxqript\syntax\FlowOperator.cs" />
-    <Compile Include="vax\vaxqript\syntax\LinearSyntax.cs" />
-    <Compile Include="vax\vaxqript\syntax\Lexer.cs" />
+    <Compile Include="vax\vaxqript\FlowOperator.cs" />
+    <Compile Include="vax\vaxqript\IExecutable.cs" />
+    <Compile Include="vax\vaxqript\Lexer.cs" />
+    <Compile Include="vax\vaxqript\LinearSyntax.cs" />
+    <Compile Include="vax\vaxqript\Operator.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
     <Folder Include="vax\" />
     <Folder Include="vax\vaxqript\" />
-    <Folder Include="vax\vaxqript\syntax\" />
   </ItemGroup>
 </Project>

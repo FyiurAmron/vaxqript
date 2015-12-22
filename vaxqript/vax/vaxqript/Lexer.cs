@@ -105,7 +105,7 @@ namespace vax.vaxqript {
         }
 
         protected bool skipWhitespace () {
-            for(; pos != maxPos; pos++ ) {
+            for( ; pos != maxPos; pos++ ) {
                 if( !is_whitespace[inputString[pos]] )
                     return true;
             }
@@ -115,7 +115,7 @@ namespace vax.vaxqript {
 
 
         protected bool findEndingWhitespace () {
-            for(; endPos != maxPos; endPos++ ) {
+            for( ; endPos != maxPos; endPos++ ) {
                 if( is_whitespace[inputString[endPos]] )
                     return true;
             }
@@ -124,7 +124,7 @@ namespace vax.vaxqript {
         }
 
         protected bool findEndingNewline () {
-            for(; endPos != maxPos; endPos++ ) {
+            for( ; endPos != maxPos; endPos++ ) {
                 if( is_newline[inputString[endPos]] )
                     return true;
             }
@@ -133,7 +133,7 @@ namespace vax.vaxqript {
         }
 
         protected bool findIdentifierEnd () {
-            for(; endPos != maxPos; endPos++ ) {
+            for( ; endPos != maxPos; endPos++ ) {
                 if( !is_identifier[inputString[endPos]] )
                     return true;
             }
@@ -142,7 +142,7 @@ namespace vax.vaxqript {
         }
 
         protected bool findNumberEnd () {
-            for(; endPos != maxPos; endPos++ ) {
+            for( ; endPos != maxPos; endPos++ ) {
                 if( !is_numeric_ext[inputString[endPos]] )
                     return true;
             }
@@ -151,7 +151,7 @@ namespace vax.vaxqript {
         }
 
         protected bool findOperatorEnd () {
-            for(; endPos != maxPos; endPos++ ) {
+            for( ; endPos != maxPos; endPos++ ) {
                 char input = inputString[endPos];
                 if( is_whitespace[input] || is_identifier[input] || is_numeric[input]
                     || is_special[input] )
@@ -247,7 +247,7 @@ namespace vax.vaxqript {
                         StringBuilder sb = new StringBuilder();
                         pos++;
                         endPos++;
-                        for(; endPos != maxPos; endPos++ ) {
+                        for( ; endPos != maxPos; endPos++ ) {
                             if( inputString[endPos] == QUOTE_CHAR ) {
                                 beginPos = pos;
                                 pos = endPos + 1;
@@ -271,19 +271,33 @@ namespace vax.vaxqript {
                     case BLOCK_OPEN_CHAR_2:
                         pos++;
                         endPos++;
-                        return new FlowOperator( Flow.Down );
+                        return FlowOperator.valueOf( Flow.Down );
                     case BLOCK_CLOSED_CHAR_1:
                     case BLOCK_CLOSED_CHAR_2:
                         pos++;
                         endPos++;
-                        return new FlowOperator( Flow.Up );
+                        return FlowOperator.valueOf( Flow.Up );
                     case BLOCK_INLINE_CHAR:
                         pos++;
                         endPos++;
-                        return new FlowOperator( Flow.UpDown );
+                        return FlowOperator.valueOf( Flow.UpDown );
                     }
                 } else {
                     switch (firstChar) {
+                    case BLOCK_OPEN_CHAR_1:
+                    case BLOCK_OPEN_CHAR_2:
+                        pos++;
+                        endPos++;
+                        return FlowOperator.valueOf( Flow.Down );
+                    case BLOCK_CLOSED_CHAR_1:
+                    case BLOCK_CLOSED_CHAR_2:
+                        pos++;
+                        endPos++;
+                        return FlowOperator.valueOf( Flow.Up );
+                    case BLOCK_INLINE_CHAR:
+                        pos++;
+                        endPos++;
+                        return FlowOperator.valueOf( Flow.UpDown );
                     case COMMENT_CHAR:
                     case QUOTE_CHAR:
                     case PARSER_OP_CHAR:
@@ -321,7 +335,7 @@ namespace vax.vaxqript {
                         pos = endPos;
                     }
 
-                    return Identifier.forName( inputString.Substring( beginPos, endPos - beginPos /*endPos - 1*/ ) );
+                    return Identifier.valueOf( inputString.Substring( beginPos, endPos - beginPos /*endPos - 1*/ ) );
                 } else {
                     if( !findOperatorEnd() ) {
                         beginPos = pos;
@@ -332,7 +346,7 @@ namespace vax.vaxqript {
                         pos = endPos;
                     }
 
-                    return Operator.forName( inputString.Substring( beginPos, endPos - beginPos /*endPos - 1*/ ) );
+                    return Operator.valueOf( inputString.Substring( beginPos, endPos - beginPos /*endPos - 1*/ ) );
                 }
             }
             return null;

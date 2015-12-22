@@ -12,8 +12,10 @@ namespace vax.vaxqript {
             Value = value;
         }
 
+        // TODO handle string instances specially (quote them!) OR add a StringWrapper : ValueWrapper extension maybe?
+
         public override string ToString () {
-            return string.Format( "/* " + Value.GetType().Name + " */ " + Value );
+            return "/* " + Value.GetType().Name + " */ " + Value;
         }
     }
 }

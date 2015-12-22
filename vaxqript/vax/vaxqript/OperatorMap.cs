@@ -8,7 +8,7 @@ namespace vax.vaxqript {
         public static readonly Dictionary<string,Func<dynamic, dynamic>> unaryOperatorDictionary = new Dictionary<string,Func<dynamic, dynamic>> {
             { "-", (n ) => { return -n; } },
             { "!", (n ) => { return !n; } },
-            { "`", (n ) => { return Engine.varMap[Identifier.forName(n)]; } },
+            { "`", (n ) => { return Engine.varMap[Identifier.valueOf(n)]; } },
             { "++", (n ) => { return ++n; } },
             { "--", (n ) => { return --n; } },
         };
