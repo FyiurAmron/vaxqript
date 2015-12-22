@@ -120,16 +120,17 @@ namespace vax.vaxqript {
                 "{ 4 + 2 + ( 3 * 3 )",
                 "4 + 2 + ( 3 * 3 )",
                 "4 + 2 + ( 3.1 * 3 )",
-                "{ 4 + 2 + ( 3.1 * 3 ); 10.5; foo * 2",
+                "{ 4 + 2 + ( 3.1 * 3 ); 10.5; foo * 2", // note: 'foo' is declared in previous tests!
                 @"{
-                i = 3;
-                i++;
-            }",
+                    i = 3;
+                    i++;
+                }",
                 @"{
-                i = 3;
-                i = 10;
-                i + 7;
-            }"
+                    i = 3;
+                    i = 10;
+                    i++;
+                    i + 7;
+                }"
             };
             foreach( string s in inputs ) {
                 test3( s ); // completed

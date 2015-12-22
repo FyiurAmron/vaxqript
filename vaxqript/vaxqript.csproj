@@ -53,6 +53,7 @@
     <Compile Include="vax\vaxqript\Lexer.cs" />
     <Compile Include="vax\vaxqript\LinearSyntax.cs" />
     <Compile Include="vax\vaxqript\Operator.cs" />
+    <Compile Include="vax\vaxqript\HoldType.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

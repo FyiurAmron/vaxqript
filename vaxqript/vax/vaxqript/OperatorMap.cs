@@ -9,8 +9,8 @@ namespace vax.vaxqript {
             { "-", (n ) => { return -n; } },
             { "!", (n ) => { return !n; } },
             { "`", (n ) => { return Engine.varMap[Identifier.valueOf(n)]; } },
-            { "++", (n ) => { return ++n; } },
-            { "--", (n ) => { return --n; } },
+            { "++", (n ) => { return ++Engine.varMap[n]; } },
+            { "--", (n ) => { return --Engine.varMap[n]; } },
         };
         public static readonly Dictionary<string,Func<dynamic, dynamic, dynamic>> naryOperatorDictionary = new Dictionary<string,Func<dynamic, dynamic, dynamic>> {
             { "+", (n, m ) => { return n + m; } },

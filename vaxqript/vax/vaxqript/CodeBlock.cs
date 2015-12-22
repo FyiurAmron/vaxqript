@@ -48,9 +48,22 @@ namespace vax.vaxqript {
             //if ( executable.isHoldFirst() ) // TODO etc, kludged below:
             Operator op = executable as Operator;
             int i = 0;
-            if( op != null && op.ToString().Equals( "=" ) ) {
-                arr[0] = arguments[0];
-                i++;
+            if( op != null ) {
+                switch (op.EvalType) {
+                case HoldType.HoldFirst:
+                    arr[0] = arguments[0];
+                    i++;
+                    break;
+                case HoldType.HoldAll:
+                    for(; i < arguments.Count; i++ ) {
+                        arr[i] = arguments[i];
+                    }
+                    return arr;
+                case HoldType.HoldNone:
+                    break;
+                default:
+                    throw new InvalidOperationException( "unknown HoldType '" + op.EvalType + "'" );
+                }
             }
             for(; i < arguments.Count; i++ ) {
                 arr[i] = arguments[i].eval();

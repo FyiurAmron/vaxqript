@@ -4,8 +4,20 @@ namespace vax.vaxqript {
     public class Operator : IExecutable {
         private string OperatorString { get; set; }
 
-        public Operator ( string operatorString ) {
+        public HoldType EvalType { get; private set; }
+
+        public Operator ( string operatorString ) : this( operatorString, defaultHoldType( operatorString ) ) {
+        }
+
+        public Operator ( string operatorString, HoldType evalType ) {
             OperatorString = operatorString;
+            EvalType = evalType;
+        }
+
+        // DEBUG for c-tor! use a proper op cache later on
+        public static HoldType defaultHoldType ( string operatorString ) {
+            return ( operatorString.IndexOf( '=' ) != -1 || operatorString.Equals( "++" ) || operatorString.Equals( "--" ) )
+                ? HoldType.HoldFirst : HoldType.HoldNone;
         }
 
         public object exec ( params dynamic[] arguments ) {
@@ -41,7 +53,7 @@ namespace vax.vaxqript {
             dynamic result = arguments[0];
             var operatorLambda = OperatorMap.getNaryOperator( opString );
             int i = 1;
-            for(; i < arguments.Length; i++ ) {
+            for( ; i < arguments.Length; i++ ) {
                 IScriptOperatorOverload isoo = result as IScriptOperatorOverload;
                 if( isoo != null ) {
                     ValueWrapper ret = isoo.processLeft( opString, arguments[i] );
