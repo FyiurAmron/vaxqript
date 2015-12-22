@@ -8,9 +8,9 @@ namespace vax.vaxqript {
             Text = text;
         }
 
-        public  object eval () {
+        public  object eval ( Engine engine) {
             object o;
-            if( Engine.varMap.TryGetValue( this, out o ) ) {
+            if( engine.varMap.TryGetValue( this, out o ) ) {
                 return o;
             }
             return this;

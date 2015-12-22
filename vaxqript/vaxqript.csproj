@@ -39,7 +39,6 @@
     <Compile Include="vax\vaxqript\Main.cs" />
     <Compile Include="vax\vaxqript\Engine.cs" />
     <Compile Include="vax\vaxqript\IEvaluable.cs" />
-    <Compile Include="vax\vaxqript\OperatorMap.cs" />
     <Compile Include="vax\vaxqript\Identifier.cs" />
     <Compile Include="vax\vaxqript\IScriptOperatorOverload.cs" />
     <Compile Include="vax\vaxqript\CodeBlock.cs" />

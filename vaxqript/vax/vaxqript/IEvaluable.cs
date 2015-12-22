@@ -2,7 +2,7 @@
 
 namespace vax.vaxqript  {
     public interface IEvaluable : ISyntaxElement {
-        object eval ();
+        object eval ( Engine engine );
     }
 }
 

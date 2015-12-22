@@ -92,20 +92,24 @@ namespace vax.vaxqript {
                 + MAX_ASCII_CHAR + ") caused " + ex );
             }  
         }
+
+        public abstract LinearSyntax createLinearSyntax ();
     }
 
     public class StringLexer : Lexer {
-        string inputString;
-        int pos, endPos, maxPos;
+        protected string inputString;
+        protected Engine engine;
+        protected int pos, endPos, maxPos;
 
-        public StringLexer ( string inputString ) {
+        public StringLexer ( string inputString, Engine engine ) {
             this.inputString = inputString;
+            this.engine = engine;
             pos = 0;
             maxPos = inputString.Length;
         }
 
         protected bool skipWhitespace () {
-            for( ; pos != maxPos; pos++ ) {
+            for(; pos != maxPos; pos++ ) {
                 if( !is_whitespace[inputString[pos]] )
                     return true;
             }
@@ -115,7 +119,7 @@ namespace vax.vaxqript {
 
 
         protected bool findEndingWhitespace () {
-            for( ; endPos != maxPos; endPos++ ) {
+            for(; endPos != maxPos; endPos++ ) {
                 if( is_whitespace[inputString[endPos]] )
                     return true;
             }
@@ -124,7 +128,7 @@ namespace vax.vaxqript {
         }
 
         protected bool findEndingNewline () {
-            for( ; endPos != maxPos; endPos++ ) {
+            for(; endPos != maxPos; endPos++ ) {
                 if( is_newline[inputString[endPos]] )
                     return true;
             }
@@ -133,7 +137,7 @@ namespace vax.vaxqript {
         }
 
         protected bool findIdentifierEnd () {
-            for( ; endPos != maxPos; endPos++ ) {
+            for(; endPos != maxPos; endPos++ ) {
                 if( !is_identifier[inputString[endPos]] )
                     return true;
             }
@@ -142,7 +146,7 @@ namespace vax.vaxqript {
         }
 
         protected bool findNumberEnd () {
-            for( ; endPos != maxPos; endPos++ ) {
+            for(; endPos != maxPos; endPos++ ) {
                 if( !is_numeric_ext[inputString[endPos]] )
                     return true;
             }
@@ -151,7 +155,7 @@ namespace vax.vaxqript {
         }
 
         protected bool findOperatorEnd () {
-            for( ; endPos != maxPos; endPos++ ) {
+            for(; endPos != maxPos; endPos++ ) {
                 char input = inputString[endPos];
                 if( is_whitespace[input] || is_identifier[input] || is_numeric[input]
                     || is_special[input] )
@@ -198,7 +202,7 @@ namespace vax.vaxqript {
             throw new InvalidOperationException( "uknown escape sequence '\\" + c + "'" );
         }
 
-        public LinearSyntax createLinearSyntax () {
+        public override LinearSyntax createLinearSyntax () {
             var list = new LinearSyntax();
             for( var t = getNextSyntaxElement(); t != null; t = getNextSyntaxElement() ) {
                 list.Add( t );
@@ -247,7 +251,7 @@ namespace vax.vaxqript {
                         StringBuilder sb = new StringBuilder();
                         pos++;
                         endPos++;
-                        for( ; endPos != maxPos; endPos++ ) {
+                        for(; endPos != maxPos; endPos++ ) {
                             if( inputString[endPos] == QUOTE_CHAR ) {
                                 beginPos = pos;
                                 pos = endPos + 1;
@@ -346,7 +350,7 @@ namespace vax.vaxqript {
                         pos = endPos;
                     }
 
-                    return Operator.valueOf( inputString.Substring( beginPos, endPos - beginPos /*endPos - 1*/ ) );
+                    return engine.operatorValueOf( inputString.Substring( beginPos, endPos - beginPos /*endPos - 1*/ ) );
                 }
             }
             return null;

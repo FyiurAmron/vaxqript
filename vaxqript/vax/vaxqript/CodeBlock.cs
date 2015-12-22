@@ -42,7 +42,7 @@ namespace vax.vaxqript {
             executable = null;
         }
 
-        public dynamic[] prepareArguments () {
+        public dynamic[] prepareArguments ( Engine engine ) {
             dynamic[] arr = new dynamic[arguments.Count];
             // check for HoldFirst
             //if ( executable.isHoldFirst() ) // TODO etc, kludged below:
@@ -55,7 +55,7 @@ namespace vax.vaxqript {
                     i++;
                     break;
                 case HoldType.HoldAll:
-                    for(; i < arguments.Count; i++ ) {
+                    for( ; i < arguments.Count; i++ ) {
                         arr[i] = arguments[i];
                     }
                     return arr;
@@ -65,8 +65,8 @@ namespace vax.vaxqript {
                     throw new InvalidOperationException( "unknown HoldType '" + op.EvalType + "'" );
                 }
             }
-            for(; i < arguments.Count; i++ ) {
-                arr[i] = arguments[i].eval();
+            for( ; i < arguments.Count; i++ ) {
+                arr[i] = arguments[i].eval( engine );
             }
             return arr;
         }
@@ -80,14 +80,14 @@ namespace vax.vaxqript {
         }
         */
 
-        public object eval () {
+        public object eval ( Engine engine ) {
             //return ( executable == null ) ? null : executable.exec( prepareArguments() );
             if( executable != null ) {
-                return executable.exec( prepareArguments() );
+                return executable.exec( engine, prepareArguments( engine ) );
             }
             object ret = null, ret2;
             foreach( IEvaluable ie in arguments ) {
-                ret2 = ie.eval();
+                ret2 = ie.eval( engine );
                 if( ret2 != null )
                     ret = ret2;
             }

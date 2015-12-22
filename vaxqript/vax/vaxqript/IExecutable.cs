@@ -2,7 +2,7 @@
 
 namespace vax.vaxqript {
     public interface IExecutable : ISyntaxElement {
-        object exec ( params dynamic[] arguments );
+        object exec ( Engine engine, params dynamic[] arguments );
     }
 }
 
