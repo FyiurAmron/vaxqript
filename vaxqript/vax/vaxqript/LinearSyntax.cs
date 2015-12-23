@@ -10,7 +10,21 @@ namespace vax.vaxqript {
             ElementList = new List<ISyntaxElement>();
         }
 
-        public void Add ( ISyntaxElement iSyntaxElement ) {
+        public LinearSyntax ( params ISyntaxElement[] iSyntaxElements ) : this() {
+            foreach( ISyntaxElement ise in iSyntaxElements )
+                _add( ise );
+        }
+
+        public void addAll ( params ISyntaxElement[] iSyntaxElements ) {
+            foreach( ISyntaxElement ise in iSyntaxElements )
+                _add( ise );
+        }
+
+        public void add ( ISyntaxElement iSyntaxElement ) {
+            _add( iSyntaxElement );
+        }
+
+        private void _add ( ISyntaxElement iSyntaxElement ) {
             ElementList.Add( iSyntaxElement );
         }
 
@@ -26,7 +40,7 @@ namespace vax.vaxqript {
             return sb.ToString();
         }
 
-        public CodeBlock buildParseTree() {
+        public CodeBlock buildParseTree () {
             CodeTreeBuilder ctb = new CodeTreeBuilder();
             foreach( var elem in ElementList ) {
                 ctb.consume( elem );

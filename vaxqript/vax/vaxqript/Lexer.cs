@@ -95,7 +95,33 @@ namespace vax.vaxqript {
 
         public abstract LinearSyntax createLinearSyntax ();
 
-        protected static char unescape ( char c ) {
+        public static string escape ( char c ) {
+            switch (c) {
+            case '\b': // backspace
+                return "\\b";
+            case '\f': // form feed
+                return "\\f";
+            // common escape sequences
+            case '\t': // tab
+                return "\\t";
+            case '\n': // newline
+                return "\\n";
+            case '\r': // carriage return
+                return "\\r";
+            case '\\': // backslash (escape char itself)
+                return "\\\\";
+            case '\'': // single quote
+                return "\\'";
+            case '\"': // double quote
+                return "\\\"";
+            case '\0': // NULL value (0x0)
+                return "\\0";
+            }
+            return "" + c;
+            //throw new InvalidOperationException( "char not an escape-able one: '" + c + "'" );
+        }
+
+        public static char unescape ( char c ) {
             // cross-compatible with Java's escape sequences
             switch (c) {
             /* those two are seldom used and Java incompatible
@@ -144,7 +170,7 @@ namespace vax.vaxqript {
         }
 
         protected bool skipWhitespace () {
-            for( ; pos != maxPos; pos++ ) {
+            for(; pos != maxPos; pos++ ) {
                 if( !is_whitespace[inputString[pos]] )
                     return true;
             }
@@ -154,7 +180,7 @@ namespace vax.vaxqript {
 
 
         protected bool findEndingWhitespace () {
-            for( ; endPos != maxPos; endPos++ ) {
+            for(; endPos != maxPos; endPos++ ) {
                 if( is_whitespace[inputString[endPos]] )
                     return true;
             }
@@ -163,7 +189,7 @@ namespace vax.vaxqript {
         }
 
         protected bool findEndingNewline () {
-            for( ; endPos != maxPos; endPos++ ) {
+            for(; endPos != maxPos; endPos++ ) {
                 if( is_newline[inputString[endPos]] )
                     return true;
             }
@@ -172,7 +198,7 @@ namespace vax.vaxqript {
         }
 
         protected bool findIdentifierEnd () {
-            for( ; endPos != maxPos; endPos++ ) {
+            for(; endPos != maxPos; endPos++ ) {
                 if( !is_identifier[inputString[endPos]] )
                     return true;
             }
@@ -181,7 +207,7 @@ namespace vax.vaxqript {
         }
 
         protected bool findNumberEnd () {
-            for( ; endPos != maxPos; endPos++ ) {
+            for(; endPos != maxPos; endPos++ ) {
                 if( !is_numeric_ext[inputString[endPos]] )
                     return true;
             }
@@ -190,7 +216,7 @@ namespace vax.vaxqript {
         }
 
         protected bool findOperatorEnd () {
-            for( ; endPos != maxPos; endPos++ ) {
+            for(; endPos != maxPos; endPos++ ) {
                 char input = inputString[endPos];
                 if( is_whitespace[input] || is_identifier[input] || is_numeric[input]
                     || is_special[input] )
@@ -201,14 +227,14 @@ namespace vax.vaxqript {
         }
 
         protected void processParserOp ( string s ) {
-            if( s.ToLower().Equals( "exit" ) )
-                throw new Exception( "exit" );
+            if( s.ToLower().Equals( "#exit" ) )
+                throw new Exception( "#exit" );
         }
 
         public override LinearSyntax createLinearSyntax () {
             var list = new LinearSyntax();
             for( var t = getNextSyntaxElement(); t != null; t = getNextSyntaxElement() ) {
-                list.Add( t );
+                list.add( t );
             }
             return list;
         }
@@ -254,7 +280,7 @@ namespace vax.vaxqript {
                         StringBuilder sb = new StringBuilder();
                         pos++;
                         endPos++;
-                        for( ; endPos != maxPos; endPos++ ) {
+                        for(; endPos != maxPos; endPos++ ) {
                             if( inputString[endPos] == QUOTE_CHAR ) {
                                 beginPos = pos;
                                 pos = endPos + 1;

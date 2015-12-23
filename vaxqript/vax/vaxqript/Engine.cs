@@ -5,7 +5,7 @@ using System.Collections;
 
 namespace vax.vaxqript {
     public class Engine {
-        public Dictionary<Identifier, object> varMap = new Dictionary<Identifier,object>() {
+        private Dictionary<Identifier, object> varMap = new Dictionary<Identifier,object>() {
             { new Identifier( "true" ), true },
             { new Identifier( "false" ), false },
             //{ new Identifier( "Inf" ), float.PositiveInfinity },
@@ -16,6 +16,18 @@ namespace vax.vaxqript {
 
         public Engine () {
             createDefaultOperators();
+        }
+
+        public ValueWrapper getIdentifierValue ( Identifier identifier ) {
+            object ret;
+            if( varMap.TryGetValue( identifier, out ret ) ) {
+                return new ValueWrapper( ret );
+            }
+            return null;
+        }
+
+        public void setIdentifierValue ( Identifier identifier, object value ) {
+            varMap[identifier] = value; // TODO support access modifiers & levels etc
         }
 
         protected void createDefaultOperators () {
@@ -46,10 +58,10 @@ namespace vax.vaxqript {
                 }, null ),
                 new Operator( "++", (n ) => {
                     return ++varMap[n];
-                }, null, HoldType.HoldFirst ),
+                }, null, HoldType.First ),
                 new Operator( "--", (n ) => {
                     return --varMap[n];
-                }, null, HoldType.HoldFirst ),
+                }, null, HoldType.First ),
                 new Operator( "*", null, (n, m ) => {
                     return n * m;
                 } ),
@@ -103,75 +115,94 @@ namespace vax.vaxqript {
                 } ),
                 // TODO ternary as "?:"
                 new Operator( "=", null, (n, m ) => {
-                    varMap[n] = m;
-                    return m;
-                }, HoldType.HoldFirst ),
+                    // varMap[n] = m; // we inverted the associativity here
+                    // return m;
+                    varMap[m] = n;
+                    return n;
+                }, HoldType.AllButFirst, Associativity.RightToLeft ),
                 new Operator( "+=", null, (n, m ) => {
-                    if( n is Stack ) {
-                        n.Push( m );
+                    // since we have HoldType.First here
+                    Identifier id = n as Identifier;
+                    if( id != null ) {
+                        varMap[id] += m;
                         return n;
                     }
-                    if( n is Queue ) {
-                        n.Enqueue( m );
+                        
+                    ValueWrapper wrap = n as ValueWrapper;
+                    dynamic o = wrap.Value;
+                    if( o is Stack ) {
+                        o.Push( m );
+                        return n;
+                    }
+                    if( o is Queue ) {
+                        o.Enqueue( m );
                         return n;
                     }
                     //else if ( n is LinkedList ) { n.AddLast(m); return n; }
-                    if( n is ICollection ) {
-                        n.Add( m );
+                    if( o is ICollection ) {
+                        o.Add( m );
                         return n;
                     }
-                    varMap[n] += m;
-                    return n;
-                }, HoldType.HoldFirst ),
+                    throw new InvalidOperationException();
+                }, HoldType.First ),
                 new Operator( "-=", null, (n, m ) => {
-                    if( n is Stack ) {
-                        n.Pop( m );
+                    // since we have HoldType.First here
+                    Identifier id = n as Identifier;
+                    if( id != null ) {
+                        varMap[n] -= m;
                         return n;
                     }
-                    if( n is Queue ) {
-                        n.Dequeue( m );
+
+                    ValueWrapper wrap = n as ValueWrapper;
+                    dynamic o = wrap.Value;
+
+                    if( o is Stack ) {
+                        o.Pop( m );
+                        return n;
+                    }
+                    if( o is Queue ) {
+                        o.Dequeue( m );
                         return n;
                     }
                     //else if ( n is LinkedList ) { n.AddLast(m); return n; }
-                    if( n is ICollection ) {
-                        n.Remove( m );
+                    if( o is ICollection ) {
+                        o.Remove( m );
                         return n;
-                    }        
-                    varMap[n] -= m;
-                    return n;
-                }, HoldType.HoldFirst ),
+                    }
+                    throw new InvalidOperationException();
+                }, HoldType.First ),
                 new Operator( "*=", null, (n, m ) => {
                     varMap[n] *= m;
                     return n;
-                }, HoldType.HoldFirst ),
+                }, HoldType.First ),
                 new Operator( "/=", null, (n, m ) => {
                     varMap[n] /= m;
                     return n;
-                }, HoldType.HoldFirst ),
+                }, HoldType.First ),
                 new Operator( "%=", null, (n, m ) => {
                     varMap[n] %= m;
                     return n;
-                }, HoldType.HoldFirst ),
+                }, HoldType.First ),
                 new Operator( "&=", null, (n, m ) => {
                     varMap[n] &= m;
                     return n;
-                }, HoldType.HoldFirst ),
+                }, HoldType.First ),
                 new Operator( "|=", null, (n, m ) => {
                     varMap[n] |= m;
                     return n;
-                }, HoldType.HoldFirst ),
+                }, HoldType.First ),
                 new Operator( "^=", null, (n, m ) => {
                     varMap[n] ^= m;
                     return n;
-                }, HoldType.HoldFirst ),
+                }, HoldType.First ),
                 new Operator( "<<=", null, (n, m ) => {
                     varMap[n] <<= m;
                     return n;
-                }, HoldType.HoldFirst ),
+                }, HoldType.First ),
                 new Operator( ">>=", null, (n, m ) => {
                     varMap[n] >>= m;
                     return n;
-                }, HoldType.HoldFirst ),
+                }, HoldType.First ),
             };
             foreach( Operator op in defaultOperators ) {
                 addOperator( op );
@@ -270,68 +301,20 @@ namespace vax.vaxqript {
             return iExecutable.exec( this, arguments );
         }
 
-        public dynamic debugApplyGenericOperator ( String opString, params dynamic[] arguments ) {
-            Operator op = operatorValueOf( opString );
-            switch (arguments.Length) {
-            case 0:
-                return applyNullaryOperator( op );
-            case 1:
-                return applyUnaryOperator( op, arguments[0] );
-            default:
-                return applyNaryOperator( op, arguments );
+        /**
+         * Note: raw values get wrapped automagically; ISyntaxElement-s ain't.
+         */
+        public dynamic debugApplyStringOperator ( String opString, params dynamic[] arguments ) {
+            int max = arguments.Length;
+            ISyntaxElement[] ises = new ISyntaxElement[ max + 1];
+            ises[0] = operatorValueOf( opString );
+            for( int i = 0; i < max; i++ ) {
+                dynamic arg = arguments[i];
+                ISyntaxElement ise = arg as ISyntaxElement;
+                ises[i + 1] = ( ise != null ) ? ise : new ValueWrapper( arg );
             }
-        }
-
-        public dynamic applyGenericOperator ( Operator op, params dynamic[] arguments ) {
-            switch (arguments.Length) {
-            case 0:
-                return applyNullaryOperator( op );
-            case 1:
-                return applyUnaryOperator( op, arguments[0] );
-            default:
-                return applyNaryOperator( op, arguments );
-            }
-        }
-
-        public dynamic applyNullaryOperator ( Operator op ) {
-            throw new NotSupportedException( "not supported nullary '" + op + "'" );
-        }
-
-        public dynamic applyUnaryOperator ( Operator op, dynamic argument ) {
-            IScriptOperatorOverload isoo = argument as IScriptOperatorOverload;
-            if( isoo != null ) {
-                ValueWrapper ret = isoo.processLeft( op.OperatorString, argument );
-                if( ret != null )
-                    return ret.Value;
-            }
-            return op.UnaryLambda( argument );
-        }
-
-        public dynamic applyNaryOperator ( Operator op, params dynamic[] arguments ) {
-            dynamic result = arguments[0];
-            //var operatorLambda = getNaryOperator( opString );
-            var operatorLambda = op.NaryLambda;
-            int i = 1;
-            for(; i < arguments.Length; i++ ) {
-                IScriptOperatorOverload isoo = result as IScriptOperatorOverload;
-                if( isoo != null ) {
-                    ValueWrapper ret = isoo.processLeft( op.OperatorString, arguments[i] );
-                    if( ret != null ) {
-                        result = ret.Value;
-                        continue;
-                    }
-                }
-                isoo = arguments[i] as IScriptOperatorOverload;
-                if( isoo != null ) {
-                    ValueWrapper ret = isoo.processRight( op.OperatorString, arguments[i] );
-                    if( ret != null ) {
-                        result = ret.Value;
-                        continue;
-                    }
-                }
-                result = operatorLambda( result, arguments[i] );
-            }
-            return result;
+            //Console.WriteLine( string.Join<ISyntaxElement>( ",", ises ) ); // in case of debug
+            return new CodeBlock( ises ).eval( this );
         }
 
         public static bool IsNumericType ( object o ) {   

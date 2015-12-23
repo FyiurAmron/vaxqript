@@ -1,20 +1,17 @@
 ﻿using System;
 
 namespace vax.vaxqript {
-    public class Identifier : IEvaluable { // TODO implement IExecutable?
+    public class Identifier : IEvaluable {
+        // TODO implement IExecutable?
         public string Text;
 
         public Identifier ( string text ) {
             Text = text;
         }
 
-        public  object eval ( Engine engine) {
-            object o;
-            if( engine.varMap.TryGetValue( this, out o ) ) {
-                return o;
-            }
-            return this;
-            //return  ? o : this;
+        public  object eval ( Engine engine ) {
+            ValueWrapper o = engine.getIdentifierValue( this );
+            return ( o == null ) ? this : o.Value;
         }
 
         public override bool Equals ( object obj ) {

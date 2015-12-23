@@ -10,7 +10,12 @@ namespace vax.vaxqript {
         public CodeBlock () {
         }
 
-        public void add ( ISyntaxElement syntaxElement ) {
+        public CodeBlock ( params ISyntaxElement[] syntaxElements ) {
+            foreach( ISyntaxElement syntaxElement in syntaxElements )
+                _add( syntaxElement );
+        }
+
+        private void _add ( ISyntaxElement syntaxElement ) {
             IExecutable iexe = syntaxElement as IExecutable;
             IEvaluable ieva = syntaxElement as IEvaluable;
             if( iexe != null ) {
@@ -32,9 +37,13 @@ namespace vax.vaxqript {
             arguments.Add( ieva );
         }
 
+        public void add ( ISyntaxElement syntaxElement ) {
+            _add( syntaxElement );
+        }
+
         public void addAll ( params ISyntaxElement[] syntaxElements ) {
             foreach( ISyntaxElement syntaxElement in syntaxElements )
-                add( syntaxElement );
+                _add( syntaxElement );
         }
 
         public void clear () {
@@ -44,28 +53,69 @@ namespace vax.vaxqript {
 
         public dynamic[] prepareArguments ( Engine engine ) {
             dynamic[] arr = new dynamic[arguments.Count];
-            // check for HoldFirst
-            //if ( executable.isHoldFirst() ) // TODO etc, kludged below:
+            if( arguments.Count == 0 )
+                return arr;
+            
             Operator op = executable as Operator;
-            int i = 0;
+            int max = arguments.Count;
             if( op != null ) {
-                switch (op.EvalType) {
-                case HoldType.HoldFirst:
-                    arr[0] = arguments[0];
-                    i++;
-                    break;
-                case HoldType.HoldAll:
-                    for( ; i < arguments.Count; i++ ) {
-                        arr[i] = arguments[i];
+                switch (op.HoldType) {
+                case HoldType.First:
+                    if( op.Associativity == Associativity.LeftToRight ) {
+                        arr[0] = arguments[0];
+                        for( int i = 1; i < max; i++ ) {
+                            arr[i] = arguments[i].eval( engine );
+                        }
+                    } else {
+                        max--;
+                        arr[0] = arguments[max];
+                        for( int i = 1, j = max - 1; j >= 0; i++, j-- ) {
+                            arr[i] = arguments[j].eval( engine );
+                        }
                     }
                     return arr;
-                case HoldType.HoldNone:
+                case HoldType.AllButFirst:
+                    if( op.Associativity == Associativity.LeftToRight ) {
+                        arr[0] = arguments[0].eval( engine );
+                        for( int i = 1; i < max; i++ ) {
+                            arr[i] = arguments[i];
+                        }
+                    } else {
+                        max--;
+                        arr[0] = arguments[max].eval( engine );
+                        for( int i = 1, j = max - 1; j >= 0; i++, j-- ) {
+                            arr[i] = arguments[j];
+                        }
+                    }
+                    return arr;
+                case HoldType.All:
+                    if( op.Associativity == Associativity.LeftToRight ) {
+                        for( int i = 0; i < max; i++ ) {
+                            arr[i] = arguments[i];
+                        }
+                    } else {
+                        for( int i = 0, j = max - 1; i < max; i++, j-- ) {
+                            arr[i] = arguments[j];
+                        }
+                    }
+                    return arr;
+                case HoldType.None:
+                    if( op.Associativity == Associativity.LeftToRight ) {
+                        for( int i = 0; i < max; i++ ) {
+                            arr[i] = arguments[i].eval( engine );
+                        }
+                    } else {
+                        for( int i = 0, j = max - 1; i < max; i++, j-- ) {
+                            arr[i] = arguments[j].eval( engine );
+                        }
+                    }
                     break;
                 default:
-                    throw new InvalidOperationException( "unknown HoldType '" + op.EvalType + "'" );
+                    throw new InvalidOperationException( "unknown HoldType '" + op.HoldType + "'" );
                 }
             }
-            for( ; i < arguments.Count; i++ ) {
+            // default core behaviour
+            for( int i = 0; i < max; i++ ) {
                 arr[i] = arguments[i].eval( engine );
             }
             return arr;
@@ -81,7 +131,6 @@ namespace vax.vaxqript {
         */
 
         public object eval ( Engine engine ) {
-            //return ( executable == null ) ? null : executable.exec( prepareArguments() );
             if( executable != null ) {
                 return executable.exec( engine, prepareArguments( engine ) );
             }

@@ -3,50 +3,78 @@ using Microsoft.CSharp.RuntimeBinder;
 using System.Collections.Generic;
 
 namespace vax.vaxqript {
-    class MainClass {
+    public class MainClass {
+
+        public static void Main ( string[] args ) {
+            Engine engine = new Engine();
+            Console.WriteLine( "=== TEST 1a ===" );
+            test1a( engine ); // completed
+            Console.WriteLine( "=== TEST 1b ===" );
+            test1b( engine ); // completed
+            Console.WriteLine( "=== TEST 2  ===" );
+            test2( engine ); // completed
+            Console.WriteLine( "=== TEST 3  ===" );
+            string[] inputs = {
+                /*
+                "{ + 4 1 { * 3 11 } }",
+                "{ + 4 2 { * 3 3",
+                "{ 4 + 2 + ( 3 * 3 )",
+                "4 + 2 + ( 3 * 3 )",
+                "4 + 2 + ( 3.1 * 3 )",
+                "foo",
+                "{ 4 + 2 + ( 3.1 * 3 ); 10.5; foo * 2", // note: 'foo' is declared in previous tests!
+                */
+                @"{
+                    i = 3;
+                    i++;
+                }",
+                @"{
+                    i = 3;
+                    i = 10;
+                    i++;
+                    i + 7;
+                }"
+            };
+            foreach( string s in inputs ) {
+                test3( s, engine ); // completed
+            }
+            Console.WriteLine( "=== READ-EVAL LOOP ===" );
+
+            for( string line = Console.ReadLine(); line != null && line.Length != 0; line = Console.ReadLine() ) {
+                try {
+                    Console.WriteLine( ">>> " + engine.eval( line ) );
+                } catch (Exception ex) {
+                    Console.WriteLine( ">>> EXCEPTION: " + ex.Message );
+                }
+            }
+        }
+
+        public static object operatorTest ( Engine engine, String opString, params dynamic[] arguments ) {
+            try {
+                object ret = engine.debugApplyStringOperator( opString, arguments );
+                Console.WriteLine( ret );
+                return ret;
+            } catch (Exception ex) {
+                Console.WriteLine( ">>> EXCEPTION: " + ex.Message );
+                return null;
+            }
+        }
+
         public static void test1a ( Engine engine ) {
-            try {
-                Console.WriteLine( engine.debugApplyGenericOperator( "+", "test", "owy", 42 ) );
-            } catch (Exception ex) {
-                Console.WriteLine( ex.Message );
-            }
-
-            try {
-                Console.WriteLine( engine.debugApplyGenericOperator( "+", new AddTestClass(), new AddTestClass(), " 16" ) );
-            } catch (Exception ex) {
-                Console.WriteLine( ex.Message );
-            }
-
-            try {
-                Console.WriteLine( engine.debugApplyGenericOperator( "+", new AddTestClass(), new AddTestClass(), 16 ) );
-            } catch (Exception ex) {
-                Console.WriteLine( ex.Message );
-            }
-
-            try {
-                Console.WriteLine( engine.debugApplyGenericOperator( "+", 16, new AddTestClass(), new AddTestClass(), 16 ) );
-            } catch (Exception ex) {
-                Console.WriteLine( ex.Message );
-            }
+            operatorTest( engine, "+", "test", "owy", 42 );
+            operatorTest( engine, "+", new AddTestClass(), new AddTestClass(), " 16" );
+            operatorTest( engine, "+", new AddTestClass(), new AddTestClass(), 16 );
+            operatorTest( engine, "+", 16, new AddTestClass(), new AddTestClass(), 16 );
 
             Identifier fooI = Identifier.valueOf( "foo" );
 
-            try {
-                Console.WriteLine( engine.debugApplyGenericOperator( "=", fooI, 9001 ) );
-            } catch (Exception ex) {
-                Console.WriteLine( ex.Message );
-            }
+            operatorTest( engine, "=", fooI, 9001 );
+            operatorTest( engine, "/=", fooI, 1001 );
 
             try {
-                Console.WriteLine( engine.debugApplyGenericOperator( "/=", fooI, 1001 ) );
+                Console.WriteLine( engine.getIdentifierValue( fooI ).Value );
             } catch (Exception ex) {
-                Console.WriteLine( ex.Message );
-            }
-
-            try {
-                Console.WriteLine( engine.varMap[fooI] );
-            } catch (Exception ex) {
-                Console.WriteLine( ex.Message );
+                Console.WriteLine( ">>> EXCEPTION: " + ex.Message );
             }
 
             /*
@@ -57,24 +85,19 @@ namespace vax.vaxqript {
             }*/
 
             try {
-                Console.WriteLine( string.Join( "\n", engine.debugApplyGenericOperator( "+=", new List<object>(), true, 1 ) ) );
+                Console.WriteLine( string.Join( "\n", engine.debugApplyStringOperator( "+=", new List<object>(), true, 1 ) ) );
             } catch (Exception ex) {
-                Console.WriteLine( ex.Message );
+                Console.WriteLine( ">>> EXCEPTION: " + ex.Message );
             }
 
             try {
-                Console.WriteLine( engine.debugApplyGenericOperator( "||", engine.debugApplyGenericOperator( "&&", true, false ), false ) );
-                Console.WriteLine( engine.debugApplyGenericOperator( "||", engine.debugApplyGenericOperator( "&&", true, true ), false ) );
+                Console.WriteLine( engine.debugApplyStringOperator( "||", engine.debugApplyStringOperator( "&&", true, false ), false ) );
+                Console.WriteLine( engine.debugApplyStringOperator( "||", engine.debugApplyStringOperator( "&&", true, true ), false ) );
             } catch (Exception ex) {
-                Console.WriteLine( ex.Message );
+                Console.WriteLine( ">>> EXCEPTION: " + ex.Message );
             }
 
-            try {
-                Console.WriteLine( engine.debugApplyGenericOperator( "`", "foo" ) );
-            } catch (Exception ex) {
-                Console.WriteLine( ex.Message );
-            }
-
+            operatorTest( engine, "`", "foo" );
         }
 
         public static void test1b ( Engine engine ) {
@@ -112,47 +135,6 @@ namespace vax.vaxqript {
             //Console.WriteLine( cn );
             object o = engine.eval( cn );
             Console.WriteLine( ( o == null ) ? "null" : o );
-        }
-
-        public static void Main ( string[] args ) {
-            Engine engine = new Engine();
-            test1a( engine ); // completed
-            Console.WriteLine( "=======================" );
-            test1b( engine ); // completed
-            Console.WriteLine( "=======================" );
-            test2( engine ); // completed
-            Console.WriteLine( "=======================" );
-            string[] inputs = {
-                "{ + 4 1 { * 3 11 } }",
-                "{ + 4 2 { * 3 3",
-                "{ 4 + 2 + ( 3 * 3 )",
-                "4 + 2 + ( 3 * 3 )",
-                "4 + 2 + ( 3.1 * 3 )",
-                "foo",
-                "{ 4 + 2 + ( 3.1 * 3 ); 10.5; foo * 2", // note: 'foo' is declared in previous tests!
-                @"{
-                    i = 3;
-                    i++;
-                }",
-                @"{
-                    i = 3;
-                    i = 10;
-                    i++;
-                    i + 7;
-                }"
-            };
-            foreach( string s in inputs ) {
-                test3( s, engine ); // completed
-            }
-            
-
-            for( string line = Console.ReadLine(); !line.StartsWith( "\n" ); line = Console.ReadLine() ) {
-                try {
-                    Console.WriteLine( ">>> " + engine.eval( line ) );
-                } catch( Exception ex ) {
-                    Console.WriteLine( ex );
-                }
-            }
         }
     }
 
