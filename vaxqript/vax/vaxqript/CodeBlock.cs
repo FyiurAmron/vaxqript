@@ -37,8 +37,23 @@ namespace vax.vaxqript {
             arguments.Add( ieva );
         }
 
+        private void _add ( object obj ) {
+            ISyntaxElement ise = obj as ISyntaxElement;
+            _add( ( ise != null ) ? ise : new ValueWrapper( obj ) );
+        }
+
+        public void add ( object obj ) {
+            _add( obj );
+        }
+
         public void add ( ISyntaxElement syntaxElement ) {
             _add( syntaxElement );
+        }
+
+
+        public void addAll ( params object[] objs ) {
+            foreach( object obj in objs )
+                _add( obj );
         }
 
         public void addAll ( params ISyntaxElement[] syntaxElements ) {

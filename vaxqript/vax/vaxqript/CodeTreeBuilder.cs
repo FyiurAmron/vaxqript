@@ -6,9 +6,12 @@ namespace vax.vaxqript {
         private Stack<CodeBlock> codeBlockStack = new Stack<CodeBlock>();
         private CodeBlock root = new CodeBlock();
         private CodeBlock currentCodeBlock;
+        private bool implicitFirstDown = true;
 
         public CodeTreeBuilder () {
             currentCodeBlock = root;
+            if( implicitFirstDown )
+                down();
         }
 
         public void consume ( ISyntaxElement syntaxElement ) {
@@ -32,14 +35,22 @@ namespace vax.vaxqript {
             currentCodeBlock.add( syntaxElement );
         }
 
-        public void down () {
+        public void down() {
+            _down();
+        }
+
+        public void up() {
+            _up();
+        }
+
+        private void _down () {
             CodeBlock newBlock = new CodeBlock();
             currentCodeBlock.add( newBlock );
             codeBlockStack.Push( currentCodeBlock );
             currentCodeBlock = newBlock;
         }
 
-        public void up () {
+        private void _up () {
             currentCodeBlock = codeBlockStack.Pop();
         }
 

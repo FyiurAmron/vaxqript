@@ -5,29 +5,59 @@ using System.Collections;
 
 namespace vax.vaxqript {
     public class Engine {
-        private Dictionary<Identifier, object> varMap = new Dictionary<Identifier,object>() {
-            { new Identifier( "true" ), true },
-            { new Identifier( "false" ), false },
-            //{ new Identifier( "Inf" ), float.PositiveInfinity },
-            //etc
-        };
+        private ValueWrapper retVal = new ValueWrapper( null );
 
-        Dictionary<string,Operator> operatorMap = new Dictionary<string,Operator>();
+        private Dictionary<Identifier, dynamic> varMap = new Dictionary<Identifier,dynamic>();
+        private Dictionary<string,Operator> operatorMap = new Dictionary<string,Operator>();
+        private Dictionary<string,Identifier> identifierMap = new Dictionary<string,Identifier>();
 
         public Engine () {
             createDefaultOperators();
+            createDefaultVariables();
+        }
+
+        public Identifier getIdentifier ( string identifierString ) {
+            Identifier ret;
+            if( identifierMap.TryGetValue( identifierString, out ret ) ) {
+                return ret;
+            }
+            return null;
+        }
+
+        public ValueWrapper getIdentifierValue ( string identifierString ) {
+            return getIdentifierValue( getIdentifier( identifierString ) );
         }
 
         public ValueWrapper getIdentifierValue ( Identifier identifier ) {
             object ret;
             if( varMap.TryGetValue( identifier, out ret ) ) {
-                return new ValueWrapper( ret );
+                ValueWrapper vw = ret as ValueWrapper;
+                return ( vw != null ) ? vw : new ValueWrapper( ret );
             }
             return null;
         }
 
+        public Identifier setIdentifierValue ( string identifierString, object value ) {
+            Identifier ret;
+            if( !identifierMap.TryGetValue( identifierString, out ret ) ) {
+                ret = new Identifier( identifierString );
+                identifierMap[identifierString] = ret;
+            }
+
+            setIdentifierValue( ret, value );
+            return ret;
+        }
+
         public void setIdentifierValue ( Identifier identifier, object value ) {
             varMap[identifier] = value; // TODO support access modifiers & levels etc
+        }
+
+        protected void createDefaultVariables () {
+            setIdentifierValue( "true", true );
+            setIdentifierValue( "false", false );
+            setIdentifierValue( "$ret", retVal );
+            //{ new Identifier( "Inf" ), float.PositiveInfinity },
+            //etc
         }
 
         protected void createDefaultOperators () {
@@ -48,8 +78,25 @@ namespace vax.vaxqript {
                     return n - m;
                 } ),
                 new Operator( "`", (n ) => {
-                    return varMap[Identifier.valueOf( n )];
-                }, null ),
+                    ValueWrapper vw = n as ValueWrapper;
+                    if( vw != null ) {
+                        n = vw.Value; // note: not recursive!
+                    }
+                    string s = n as string;
+                    if( s != null ) {
+                        return getIdentifierValue( s );
+                        //return getIdentifier( s );
+                    }
+                    Identifier id = n as Identifier;
+                    if( id != null ) {
+                        /*
+                        object o = getIdentifierValue( id );
+                        return ( o != null ) ? o : id.Name;
+                        */
+                        return id.Name;
+                    }
+                    return new ValueWrapper( n );
+                }, null, HoldType.All ),
                 new Operator( "!", (n ) => {
                     return !n;
                 }, null ),
@@ -281,24 +328,31 @@ namespace vax.vaxqript {
         //OP_TernaryEnd( ":", 7, type.OT_Ternary ), // shared with case selector in "case X:"; op_prec doesn't matter in that case
         ;
         */
+
+        protected object wrapRetVal ( object ret ) {
+            ValueWrapper vw = ret as ValueWrapper;
+            retVal.Value = ( vw != null ) ? vw.Value : ret;
+            return ret;
+        }
+
         public object eval ( string s ) {
-            return eval( new StringLexer( s, this ) );
+            return eval( new StringLexer( s, this ) ); // retVal set inside
         }
 
         public object eval ( Lexer lexer ) {
-            return eval( lexer.createLinearSyntax() );
+            return eval( lexer.createLinearSyntax() ); // retVal set inside
         }
 
         public object eval ( LinearSyntax linearSyntax ) {
-            return linearSyntax.buildParseTree().eval( this );
+            return eval( linearSyntax.buildParseTree() ); // retVal set inside
         }
 
         public object eval ( IEvaluable iEvaluable ) {
-            return iEvaluable.eval( this );
+            return wrapRetVal( iEvaluable.eval( this ) );
         }
 
         public object exec ( IExecutable iExecutable, params dynamic[] arguments ) {
-            return iExecutable.exec( this, arguments );
+            return wrapRetVal( iExecutable.exec( this, arguments ) );
         }
 
         /**

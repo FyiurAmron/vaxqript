@@ -3,13 +3,13 @@
 namespace vax.vaxqript {
     public class Identifier : IEvaluable {
         // TODO implement IExecutable?
-        public string Text;
+        public string Name;
 
         public Identifier ( string text ) {
-            Text = text;
+            Name = text;
         }
 
-        public  object eval ( Engine engine ) {
+        public object eval ( Engine engine ) {
             ValueWrapper o = engine.getIdentifierValue( this );
             return ( o == null ) ? this : o.Value;
         }
@@ -21,20 +21,22 @@ namespace vax.vaxqript {
                 return true;
             Identifier fooItem = obj as Identifier;
 
-            return fooItem.Text.Equals( this.Text );
+            return fooItem.Name.Equals( this.Name );
         }
 
         public override int GetHashCode () {
-            return Text.GetHashCode();
+            return Name.GetHashCode();
         }
 
         public override string ToString () {
-            return Text;
+            return Name;
         }
 
+        /*
         public static Identifier valueOf ( string name ) {
             return new Identifier( name ); // TODO implement instance cache (map) via Engine
         }
+        */
     }
 }
 

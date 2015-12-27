@@ -14,8 +14,8 @@ namespace vax.vaxqript {
             Console.WriteLine( "=== TEST 2  ===" );
             test2( engine ); // completed
             Console.WriteLine( "=== TEST 3  ===" );
+            engine.setIdentifierValue( "testObj1", new AddTestClass() );
             string[] inputs = {
-                /*
                 "{ + 4 1 { * 3 11 } }",
                 "{ + 4 2 { * 3 3",
                 "{ 4 + 2 + ( 3 * 3 )",
@@ -23,7 +23,6 @@ namespace vax.vaxqript {
                 "4 + 2 + ( 3.1 * 3 )",
                 "foo",
                 "{ 4 + 2 + ( 3.1 * 3 ); 10.5; foo * 2", // note: 'foo' is declared in previous tests!
-                */
                 @"{
                     i = 3;
                     i++;
@@ -33,7 +32,8 @@ namespace vax.vaxqript {
                     i = 10;
                     i++;
                     i + 7;
-                }"
+                }",
+                "testObj1 + 1"
             };
             foreach( string s in inputs ) {
                 test3( s, engine ); // completed
@@ -66,13 +66,13 @@ namespace vax.vaxqript {
             operatorTest( engine, "+", new AddTestClass(), new AddTestClass(), 16 );
             operatorTest( engine, "+", 16, new AddTestClass(), new AddTestClass(), 16 );
 
-            Identifier fooI = Identifier.valueOf( "foo" );
+            Identifier fooI = engine.setIdentifierValue( "foo", null );
 
             operatorTest( engine, "=", fooI, 9001 );
             operatorTest( engine, "/=", fooI, 1001 );
 
             try {
-                Console.WriteLine( engine.getIdentifierValue( fooI ).Value );
+                Console.WriteLine( engine.getIdentifierValue( "foo" ).Value );
             } catch (Exception ex) {
                 Console.WriteLine( ">>> EXCEPTION: " + ex.Message );
             }
@@ -103,18 +103,18 @@ namespace vax.vaxqript {
         public static void test1b ( Engine engine ) {
             CodeBlock cb1 = new CodeBlock(), cb2 = new CodeBlock();
             cb1.addAll( engine.operatorValueOf( "+" ), new ValueWrapper( 42 ), new ValueWrapper( 2 ) );
-            cb2.addAll( engine.operatorValueOf( "-" ), cb1, new ValueWrapper( 46 ), new ValueWrapper( new AddTestClass() ) );
+            cb2.addAll( engine.operatorValueOf( "-" ), cb1, 46, new AddTestClass() );
             Console.WriteLine( engine.eval( cb2 ) );
             cb2.clear();
-            cb2.addAll( engine.operatorValueOf( "-" ), cb1, new ValueWrapper( 46 ) );
+            cb2.addAll( engine.operatorValueOf( "-" ), cb1, 46 );
             Console.WriteLine( engine.eval( cb2 ) );
             cb2.clear();
             Operator smileOp = new Operator( ":-)", null, null );
-            cb2.addAll( smileOp, cb1, new ValueWrapper( new AddTestClass() ) );
+            cb2.addAll( smileOp, cb1, new AddTestClass() );
             Console.WriteLine( engine.eval( cb2 ) );
             cb2.clear();
             engine.addOperator( smileOp ); // add to cache
-            cb2.addAll( engine.operatorValueOf( ":-)" ), new ValueWrapper( new AddTestClass() ), cb1 );
+            cb2.addAll( engine.operatorValueOf( ":-)" ), new AddTestClass(), cb1 );
             Console.WriteLine( engine.eval( cb2 ) );
         }
 
@@ -144,6 +144,10 @@ namespace vax.vaxqript {
         }
 
         public static int operator + ( int a1, AddTestClass a2 ) {
+            return 13;
+        }
+
+        public static int operator + ( AddTestClass a1, int a2 ) {
             return 13;
         }
 

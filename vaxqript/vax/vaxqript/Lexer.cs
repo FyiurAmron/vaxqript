@@ -170,7 +170,7 @@ namespace vax.vaxqript {
         }
 
         protected bool skipWhitespace () {
-            for(; pos != maxPos; pos++ ) {
+            for( ; pos != maxPos; pos++ ) {
                 if( !is_whitespace[inputString[pos]] )
                     return true;
             }
@@ -180,7 +180,7 @@ namespace vax.vaxqript {
 
 
         protected bool findEndingWhitespace () {
-            for(; endPos != maxPos; endPos++ ) {
+            for( ; endPos != maxPos; endPos++ ) {
                 if( is_whitespace[inputString[endPos]] )
                     return true;
             }
@@ -189,7 +189,7 @@ namespace vax.vaxqript {
         }
 
         protected bool findEndingNewline () {
-            for(; endPos != maxPos; endPos++ ) {
+            for( ; endPos != maxPos; endPos++ ) {
                 if( is_newline[inputString[endPos]] )
                     return true;
             }
@@ -198,7 +198,7 @@ namespace vax.vaxqript {
         }
 
         protected bool findIdentifierEnd () {
-            for(; endPos != maxPos; endPos++ ) {
+            for( ; endPos != maxPos; endPos++ ) {
                 if( !is_identifier[inputString[endPos]] )
                     return true;
             }
@@ -207,7 +207,7 @@ namespace vax.vaxqript {
         }
 
         protected bool findNumberEnd () {
-            for(; endPos != maxPos; endPos++ ) {
+            for( ; endPos != maxPos; endPos++ ) {
                 if( !is_numeric_ext[inputString[endPos]] )
                     return true;
             }
@@ -216,7 +216,7 @@ namespace vax.vaxqript {
         }
 
         protected bool findOperatorEnd () {
-            for(; endPos != maxPos; endPos++ ) {
+            for( ; endPos != maxPos; endPos++ ) {
                 char input = inputString[endPos];
                 if( is_whitespace[input] || is_identifier[input] || is_numeric[input]
                     || is_special[input] )
@@ -227,8 +227,12 @@ namespace vax.vaxqript {
         }
 
         protected void processParserOp ( string s ) {
-            if( s.ToLower().Equals( "#exit" ) )
-                throw new Exception( "#exit" );
+            if( s.ToLower().Equals( "#exception" ) ) {
+                throw new Exception( "#exception" );
+            }
+            if( s.ToLower().Equals( "#breakpoint" ) ) {
+                Console.WriteLine( "#breakpoint" ); // place IDE breakpoint here
+            }
         }
 
         public override LinearSyntax createLinearSyntax () {
@@ -280,7 +284,7 @@ namespace vax.vaxqript {
                         StringBuilder sb = new StringBuilder();
                         pos++;
                         endPos++;
-                        for(; endPos != maxPos; endPos++ ) {
+                        for( ; endPos != maxPos; endPos++ ) {
                             if( inputString[endPos] == QUOTE_CHAR ) {
                                 beginPos = pos;
                                 pos = endPos + 1;
@@ -368,7 +372,7 @@ namespace vax.vaxqript {
                         pos = endPos;
                     }
 
-                    return Identifier.valueOf( inputString.Substring( beginPos, endPos - beginPos /*endPos - 1*/ ) );
+                    return new Identifier( inputString.Substring( beginPos, endPos - beginPos /*endPos - 1*/ ) );
                 } else { // TODO distinguish the special case of -/+ prefixing a number here
                     if( !findOperatorEnd() ) {
                         beginPos = pos;
