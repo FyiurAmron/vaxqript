@@ -254,10 +254,33 @@ namespace vax.vaxqript {
             foreach( Operator op in defaultOperators ) {
                 addOperator( op );
             }
+            Operator indexer = new Operator( "[]", null, (n, m ) => {
+                //if( n.GetType() == typeof(Array) ) {
+                //return ( (Array) n ).GetValue( m ); // a bit more error-resistant and error-sane than dynamic indexer use
+                //}
+                return n[m];
+            } );
+            /*
+                new Operator( "[,]", null, (n, m ) => {
+                    Console.WriteLine( ""+n.GetType());
+                    if( n.GetType() == typeof(Array) ) {
+                        return ( (Array) n ).GetValue( m );
+                    }
+                    return n[m];
+                } ),
+                */
+            addOperator( indexer );
+            addOperator( indexer, "]" );
+            addOperator( indexer, "[" );
+            addOperator( indexer, "][" );
         }
 
         public void addOperator ( Operator op ) {
             operatorMap[op.OperatorString] = op;
+        }
+
+        public void addOperator ( Operator op, string alias ) {
+            operatorMap[alias] = op;
         }
 
         public Operator operatorValueOf ( string opString ) {

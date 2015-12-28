@@ -15,6 +15,9 @@ namespace vax.vaxqript {
             test2( engine ); // completed
             Console.WriteLine( "=== TEST 3  ===" );
             engine.setIdentifierValue( "testObj1", new AddTestClass() );
+            engine.setIdentifierValue( "testArr1", new int[]{ 2, 3, 5, 7, 11 } );
+            engine.setIdentifierValue( "testArr2", new int[][]{ new int[]{ 2, 3, 5, 7, 11 }, new int[]{ 1, 2, 3, 4, 5 }, new int[]{ 2, 4, 6, 8, 10 } } );
+            engine.setIdentifierValue( "testArr3", new int[,]{ { 2, 3, 5, 7, 11 }, { 1, 2, 3, 4, 5 }, { 2, 4, 6, 8, 10 }, { 1, 1, 2, 3, 5 } } );
             string[] inputs = {
                 "{ + 4 1 { * 3 11 } }",
                 "{ + 4 2 { * 3 3",
@@ -60,6 +63,17 @@ namespace vax.vaxqript {
             }
         }
 
+        public static object operatorTest ( Engine engine, Func<Engine,object> action ) {
+            try {
+                object ret = action( engine );
+                Console.WriteLine( ret );
+                return ret;
+            } catch (Exception ex) {
+                Console.WriteLine( ">>> EXCEPTION: " + ex.Message );
+                return null;
+            }
+        }
+
         public static void test1a ( Engine engine ) {
             operatorTest( engine, "+", "test", "owy", 42 );
             operatorTest( engine, "+", new AddTestClass(), new AddTestClass(), " 16" );
@@ -71,31 +85,22 @@ namespace vax.vaxqript {
             operatorTest( engine, "=", fooI, 9001 );
             operatorTest( engine, "/=", fooI, 1001 );
 
-            try {
-                Console.WriteLine( engine.getIdentifierValue( "foo" ).Value );
-            } catch (Exception ex) {
-                Console.WriteLine( ">>> EXCEPTION: " + ex.Message );
-            }
+            operatorTest( engine, (eng ) => {
+                return eng.getIdentifierValue( "foo" ).Value;
+            } );
 
-            /*
-            try {
-                Console.WriteLine( string.Join( "\n", engine.debugApplyGenericOperator( "<", new List<object>(), true, 1 ) ) );
-            } catch (Exception ex) {
-                Console.WriteLine( ex.Message );
-            }*/
+            operatorTest( engine, (eng ) => {
+                return string.Join( "\n", eng.debugApplyStringOperator( "<", new List<object>(), true, 1 ) );
+            } );
 
-            try {
-                Console.WriteLine( string.Join( "\n", engine.debugApplyStringOperator( "+=", new List<object>(), true, 1 ) ) );
-            } catch (Exception ex) {
-                Console.WriteLine( ">>> EXCEPTION: " + ex.Message );
-            }
+            operatorTest( engine, (eng ) => {
+                return string.Join( "\n", eng.debugApplyStringOperator( "+=", new List<object>(), true, 1 ) );
+            } );
 
-            try {
-                Console.WriteLine( engine.debugApplyStringOperator( "||", engine.debugApplyStringOperator( "&&", true, false ), false ) );
-                Console.WriteLine( engine.debugApplyStringOperator( "||", engine.debugApplyStringOperator( "&&", true, true ), false ) );
-            } catch (Exception ex) {
-                Console.WriteLine( ">>> EXCEPTION: " + ex.Message );
-            }
+            operatorTest( engine, (eng ) => {
+                return "" + engine.debugApplyStringOperator( "||", engine.debugApplyStringOperator( "&&", true, false ), false )
+                + '\n' + engine.debugApplyStringOperator( "||", engine.debugApplyStringOperator( "&&", true, true ), false );
+            } );
 
             operatorTest( engine, "`", "foo" );
         }

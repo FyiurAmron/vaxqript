@@ -3,7 +3,6 @@ using System.Collections.Generic;
 
 namespace vax.vaxqript {
     public class CodeBlock : IEvaluable {
-        /*, IExecutable*/
         private List<IEvaluable> arguments = new List<IEvaluable>();
         private IExecutable executable;
 
@@ -11,8 +10,21 @@ namespace vax.vaxqript {
         }
 
         public CodeBlock ( params ISyntaxElement[] syntaxElements ) {
-            foreach( ISyntaxElement syntaxElement in syntaxElements )
+            foreach( ISyntaxElement syntaxElement in syntaxElements ) {
                 _add( syntaxElement );
+            }
+        }
+
+        public IExecutable getExecutable () {
+            return executable;
+        }
+
+        public void setExecutable ( IExecutable executable ) {
+            this.executable = executable;
+        }
+
+        public List<IEvaluable> getArgumentList () {
+            return arguments;
         }
 
         private void _add ( ISyntaxElement syntaxElement ) {
@@ -25,9 +37,10 @@ namespace vax.vaxqript {
                 } else if( executable.Equals( iexe ) ) {
                     return; // skip redundant ops
                 }
-                if( ieva == null )
+                if( ieva == null ) {
                     throw new NotSupportedException( "non-evaluable executable element '" + executable
                     + "' already present; '" + iexe + "' not compatible" );
+                }
                 arguments.Add( ieva );
                 return;
             }
@@ -52,13 +65,15 @@ namespace vax.vaxqript {
 
 
         public void addAll ( params object[] objs ) {
-            foreach( object obj in objs )
+            foreach( object obj in objs ) {
                 _add( obj );
+            }
         }
 
         public void addAll ( params ISyntaxElement[] syntaxElements ) {
-            foreach( ISyntaxElement syntaxElement in syntaxElements )
+            foreach( ISyntaxElement syntaxElement in syntaxElements ) {
                 _add( syntaxElement );
+            }
         }
 
         public void clear () {
@@ -66,7 +81,7 @@ namespace vax.vaxqript {
             executable = null;
         }
 
-        public dynamic[] prepareArguments ( Engine engine ) {
+        protected dynamic[] prepareArguments ( Engine engine ) {
             dynamic[] arr = new dynamic[arguments.Count];
             if( arguments.Count == 0 )
                 return arr;
@@ -152,8 +167,9 @@ namespace vax.vaxqript {
             object ret = null, ret2;
             foreach( IEvaluable ie in arguments ) {
                 ret2 = ie.eval( engine );
-                if( ret2 != null )
+                if( ret2 != null ) {
                     ret = ret2;
+                }
             }
             return ret;
         }
