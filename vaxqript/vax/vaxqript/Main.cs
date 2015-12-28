@@ -124,7 +124,7 @@ namespace vax.vaxqript {
         }
 
         public static void test2 ( Engine engine ) {
-            var sl = new StringLexer( " test; 42 { + ++ += //slowo xlowo3 aaa } .\nslowo xlowo3 aaa.} \"strin\" 123 3.14", engine );
+            var sl = new StringLexer( " test; 42 /* blok */ { + ++ += //slowo xlowo3 aaa } .\nslowo xlowo3 aaa.} \"strin\" 123 3.14", engine );
 
             Console.WriteLine( sl.createLinearSyntax().debugToString() );
         }

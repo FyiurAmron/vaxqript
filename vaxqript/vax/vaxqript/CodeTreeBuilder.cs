@@ -32,14 +32,15 @@ namespace vax.vaxqript {
                     throw new InvalidOperationException( "unknown Flow '" + flow.Flow + "'" );
                 }
             } // else not a flow, so just attach as a node
-            currentCodeBlock.add( syntaxElement );
+            if( !( syntaxElement is IComment ) )
+                currentCodeBlock.add( syntaxElement );
         }
 
-        public void down() {
+        public void down () {
             _down();
         }
 
-        public void up() {
+        public void up () {
             _up();
         }
 

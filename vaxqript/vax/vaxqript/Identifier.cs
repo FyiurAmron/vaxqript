@@ -11,7 +11,11 @@ namespace vax.vaxqript {
 
         public object eval ( Engine engine ) {
             ValueWrapper o = engine.getIdentifierValue( this );
-            return ( o == null ) ? this : o.Value;
+            if( o == null )
+                return this;
+            object val = o.Value;
+            IEvaluable ie = val as IEvaluable;
+            return ( ie == null ) ? val : ie.eval( engine );
         }
 
         public override bool Equals ( object obj ) {

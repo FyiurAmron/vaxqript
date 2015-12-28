@@ -7,7 +7,7 @@ namespace vax.vaxqript {
     public class Engine {
         private ValueWrapper retVal = new ValueWrapper( null );
 
-        private Dictionary<Identifier, dynamic> varMap = new Dictionary<Identifier,dynamic>();
+        private Dictionary<Identifier, dynamic> globalVarMap = new Dictionary<Identifier,dynamic>();
         private Dictionary<string,Operator> operatorMap = new Dictionary<string,Operator>();
         private Dictionary<string,Identifier> identifierMap = new Dictionary<string,Identifier>();
 
@@ -16,47 +16,53 @@ namespace vax.vaxqript {
             createDefaultVariables();
         }
 
-        public Identifier getIdentifier ( string identifierString ) {
+        public Identifier getIdentifier ( string identifierName ) {
             Identifier ret;
-            if( identifierMap.TryGetValue( identifierString, out ret ) ) {
+            if( identifierMap.TryGetValue( identifierName, out ret ) ) {
                 return ret;
             }
             return null;
         }
 
-        public ValueWrapper getIdentifierValue ( string identifierString ) {
-            return getIdentifierValue( getIdentifier( identifierString ) );
+        public ValueWrapper getIdentifierValue ( string identifierName ) {
+            return getIdentifierValue( getIdentifier( identifierName ) );
         }
 
         public ValueWrapper getIdentifierValue ( Identifier identifier ) {
             object ret;
-            if( varMap.TryGetValue( identifier, out ret ) ) {
+            if( globalVarMap.TryGetValue( identifier, out ret ) ) {
                 ValueWrapper vw = ret as ValueWrapper;
                 return ( vw != null ) ? vw : new ValueWrapper( ret );
             }
             return null;
         }
 
-        public Identifier setIdentifierValue ( string identifierString, object value ) {
+        public Identifier setIdentifierValue ( string identifierName, object value ) {
             Identifier ret;
-            if( !identifierMap.TryGetValue( identifierString, out ret ) ) {
-                ret = new Identifier( identifierString );
-                identifierMap[identifierString] = ret;
+            if( !identifierMap.TryGetValue( identifierName, out ret ) ) {
+                ret = new Identifier( identifierName );
+                identifierMap[identifierName] = ret;
             }
 
-            setIdentifierValue( ret, value );
+            _setIdentifierValue( ret, value );
             return ret;
         }
 
         public void setIdentifierValue ( Identifier identifier, object value ) {
-            varMap[identifier] = value; // TODO support access modifiers & levels etc
+            identifierMap[identifier.Name] = identifier;
+            _setIdentifierValue( identifier, value );
+        }
+
+        private void _setIdentifierValue ( Identifier identifier, object value ) {
+            globalVarMap[identifier] = value; // TODO support access modifiers & levels etc
         }
 
         protected void createDefaultVariables () {
             setIdentifierValue( "true", true );
             setIdentifierValue( "false", false );
             setIdentifierValue( "$ret", retVal );
-            //{ new Identifier( "Inf" ), float.PositiveInfinity },
+            setIdentifierValue( "$engine", this );
+            setIdentifierValue( "Infinity", float.PositiveInfinity );
             //etc
         }
 
@@ -77,26 +83,36 @@ namespace vax.vaxqript {
                 }, (n, m ) => {
                     return n - m;
                 } ),
-                new Operator( "`", (n ) => {
+                new Operator( "'", (n ) => { // Identifier<->string operator; coincidentally doubles as "alternative string quotes"
                     ValueWrapper vw = n as ValueWrapper;
                     if( vw != null ) {
                         n = vw.Value; // note: not recursive!
                     }
                     string s = n as string;
                     if( s != null ) {
-                        return getIdentifierValue( s );
-                        //return getIdentifier( s );
+                        return getIdentifier( s );
                     }
                     Identifier id = n as Identifier;
                     if( id != null ) {
-                        /*
-                        object o = getIdentifierValue( id );
-                        return ( o != null ) ? o : id.Name;
-                        */
                         return id.Name;
                     }
-                    return new ValueWrapper( n );
+                    return n;
                 }, null, HoldType.All ),
+                new Operator( "`", (n ) => { // hold operator
+                    ValueWrapper vw = n as ValueWrapper;
+                    if( vw != null ) {
+                        n = vw.Value; // note: not recursive!
+                    }
+                    Identifier id = n as Identifier;
+                    return ( id != null ) ? getIdentifierValue( id ) : Wrapper.wrap( n );
+                }, null, HoldType.All ),
+                new Operator( "?", (n ) => { // typeof operator
+                    ValueWrapper vw = n as ValueWrapper;
+                    if( vw != null ) {
+                        n = vw.Value; // note: not recursive!
+                    }
+                    return n.GetType();
+                }, null, HoldType.None ),
                 new Operator( "!", (n ) => {
                     return !n;
                 }, null ),
@@ -104,10 +120,10 @@ namespace vax.vaxqript {
                     return ~n;
                 }, null ),
                 new Operator( "++", (n ) => {
-                    return ++varMap[n];
+                    return ++globalVarMap[n];
                 }, null, HoldType.First ),
                 new Operator( "--", (n ) => {
-                    return --varMap[n];
+                    return --globalVarMap[n];
                 }, null, HoldType.First ),
                 new Operator( "*", null, (n, m ) => {
                     return n * m;
@@ -164,14 +180,20 @@ namespace vax.vaxqript {
                 new Operator( "=", null, (n, m ) => {
                     // varMap[n] = m; // we inverted the associativity here
                     // return m;
-                    varMap[m] = n;
+                    setIdentifierValue( m, n );
                     return n;
                 }, HoldType.AllButFirst, Associativity.RightToLeft ),
+                new Operator( ":=", null, (n, m ) => {
+                    // varMap[n] = m; // we inverted the associativity here
+                    // return m;
+                    setIdentifierValue( m, n );
+                    return n;
+                }, HoldType.All, Associativity.RightToLeft ),
                 new Operator( "+=", null, (n, m ) => {
                     // since we have HoldType.First here
                     Identifier id = n as Identifier;
                     if( id != null ) {
-                        varMap[id] += m;
+                        globalVarMap[id] += m;
                         return n;
                     }
                         
@@ -196,7 +218,7 @@ namespace vax.vaxqript {
                     // since we have HoldType.First here
                     Identifier id = n as Identifier;
                     if( id != null ) {
-                        varMap[n] -= m;
+                        globalVarMap[n] -= m;
                         return n;
                     }
 
@@ -219,35 +241,35 @@ namespace vax.vaxqript {
                     throw new InvalidOperationException();
                 }, HoldType.First ),
                 new Operator( "*=", null, (n, m ) => {
-                    varMap[n] *= m;
+                    globalVarMap[n] *= m;
                     return n;
                 }, HoldType.First ),
                 new Operator( "/=", null, (n, m ) => {
-                    varMap[n] /= m;
+                    globalVarMap[n] /= m;
                     return n;
                 }, HoldType.First ),
                 new Operator( "%=", null, (n, m ) => {
-                    varMap[n] %= m;
+                    globalVarMap[n] %= m;
                     return n;
                 }, HoldType.First ),
                 new Operator( "&=", null, (n, m ) => {
-                    varMap[n] &= m;
+                    globalVarMap[n] &= m;
                     return n;
                 }, HoldType.First ),
                 new Operator( "|=", null, (n, m ) => {
-                    varMap[n] |= m;
+                    globalVarMap[n] |= m;
                     return n;
                 }, HoldType.First ),
                 new Operator( "^=", null, (n, m ) => {
-                    varMap[n] ^= m;
+                    globalVarMap[n] ^= m;
                     return n;
                 }, HoldType.First ),
                 new Operator( "<<=", null, (n, m ) => {
-                    varMap[n] <<= m;
+                    globalVarMap[n] <<= m;
                     return n;
                 }, HoldType.First ),
                 new Operator( ">>=", null, (n, m ) => {
-                    varMap[n] >>= m;
+                    globalVarMap[n] >>= m;
                     return n;
                 }, HoldType.First ),
             };
@@ -388,7 +410,7 @@ namespace vax.vaxqript {
             for( int i = 0; i < max; i++ ) {
                 dynamic arg = arguments[i];
                 ISyntaxElement ise = arg as ISyntaxElement;
-                ises[i + 1] = ( ise != null ) ? ise : new ValueWrapper( arg );
+                ises[i + 1] = ( ise != null ) ? ise : Wrapper.wrap( arg );
             }
             //Console.WriteLine( string.Join<ISyntaxElement>( ",", ises ) ); // in case of debug
             return new CodeBlock( ises ).eval( this );

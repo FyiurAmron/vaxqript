@@ -11,7 +11,7 @@ namespace vax.vaxqript {
             ESCAPE_CHAR = '\\',
             PARSER_OP_CHAR = '#',
             COMMENT_CHAR = '/',
-            COMMENT_MULTILINE_CHAR = '*',
+            COMMENT_BLOCK_CHAR = '*',
 
             BLOCK_OPEN_CHAR_1 = '{',
             BLOCK_OPEN_CHAR_2 = '(',
@@ -43,7 +43,7 @@ namespace vax.vaxqript {
             is_newline = new bool[MAX_ASCII_CHAR],
             is_special = new bool[MAX_ASCII_CHAR];
 
-        protected bool keepComments;
+        protected bool keepComments = true;
 
         private void init ( bool[] boolTable, params char[] charTable ) {
             for( int i = charTable.Length - 1; i >= 0; i-- )
@@ -170,7 +170,7 @@ namespace vax.vaxqript {
         }
 
         protected bool skipWhitespace () {
-            for( ; pos != maxPos; pos++ ) {
+            for(; pos != maxPos; pos++ ) {
                 if( !is_whitespace[inputString[pos]] )
                     return true;
             }
@@ -180,7 +180,7 @@ namespace vax.vaxqript {
 
 
         protected bool findEndingWhitespace () {
-            for( ; endPos != maxPos; endPos++ ) {
+            for(; endPos != maxPos; endPos++ ) {
                 if( is_whitespace[inputString[endPos]] )
                     return true;
             }
@@ -189,7 +189,7 @@ namespace vax.vaxqript {
         }
 
         protected bool findEndingNewline () {
-            for( ; endPos != maxPos; endPos++ ) {
+            for(; endPos != maxPos; endPos++ ) {
                 if( is_newline[inputString[endPos]] )
                     return true;
             }
@@ -198,7 +198,7 @@ namespace vax.vaxqript {
         }
 
         protected bool findIdentifierEnd () {
-            for( ; endPos != maxPos; endPos++ ) {
+            for(; endPos != maxPos; endPos++ ) {
                 if( !is_identifier[inputString[endPos]] )
                     return true;
             }
@@ -207,7 +207,7 @@ namespace vax.vaxqript {
         }
 
         protected bool findNumberEnd () {
-            for( ; endPos != maxPos; endPos++ ) {
+            for(; endPos != maxPos; endPos++ ) {
                 if( !is_numeric_ext[inputString[endPos]] )
                     return true;
             }
@@ -216,7 +216,7 @@ namespace vax.vaxqript {
         }
 
         protected bool findOperatorEnd () {
-            for( ; endPos != maxPos; endPos++ ) {
+            for(; endPos != maxPos; endPos++ ) {
                 char input = inputString[endPos];
                 if( is_whitespace[input] || is_identifier[input] || is_numeric[input]
                     || is_special[input] )
@@ -227,11 +227,20 @@ namespace vax.vaxqript {
         }
 
         protected void processParserOp ( string s ) {
-            if( s.ToLower().Equals( "#exception" ) ) {
-                throw new Exception( "#exception" );
+            string[] args = s.Split( ' ' );
+            string comm = args[0].ToLower();
+            if( comm.Equals( "#exception" ) ) {
+                if( args.Length == 1 )
+                    throw new Exception( "#exception" );
+                throw (Exception) Activator.CreateInstance( Type.GetType( args[1] ) );
             }
-            if( s.ToLower().Equals( "#breakpoint" ) ) {
+            if( comm.Equals( "#breakpoint" ) ) {
                 Console.WriteLine( "#breakpoint" ); // place IDE breakpoint here
+                return;
+            }
+            if( comm.Equals( "#write" ) ) {
+                Console.WriteLine( s.Split( new char[]{ ' ' }, 2 )[1] );
+                return;
             }
         }
 
@@ -259,32 +268,48 @@ namespace vax.vaxqript {
                             findEndingNewline();
                             beginPos = pos;
                             pos = endPos + 1;
-                            /*if( keepComments )
-                                return new CommentToken( inputString.Substring( beginPos, endPos - beginPos + 1 ) );
+                            if( keepComments )
+                                return new CommentLine( inputString.Substring( beginPos, endPos - beginPos + 1 ) );
                             else
-                            */
-                            continue;
-                        /*
-                        case COMMENT_MULTILINE_CHAR:
-                            int multilineCommentNesting = 1;
-                            //while ( endPos )
-                            // process nested comments, then
-
+                                continue;
+                        case COMMENT_BLOCK_CHAR:
+                            int blockCommentNesting = 1;
+                            while( blockCommentNesting > 0 ) {
+                                endPos++;
+                                if( endPos == maxPos )
+                                    throw new InvalidOperationException( "unterminated block comment" );
+                                switch (inputString[endPos]) {
+                                case COMMENT_CHAR: // possible block begin
+                                    endPos++;
+                                    if( endPos == maxPos )
+                                        throw new InvalidOperationException( "unterminated block comment" );
+                                    if( inputString[endPos] == COMMENT_BLOCK_CHAR ) {
+                                        blockCommentNesting++;
+                                    }
+                                    break;
+                                case COMMENT_BLOCK_CHAR: // possible block end
+                                    endPos++;
+                                    if( endPos == maxPos )
+                                        throw new InvalidOperationException( "unterminated block comment" );
+                                    if( inputString[endPos] == COMMENT_CHAR ) {
+                                        blockCommentNesting--;
+                                    }
+                                    break;
+                                }
+                            }
                             beginPos = pos;
                             pos = endPos + 1;
                             if( keepComments )
-                                return new CommentToken( inputString.Substring( beginPos, endPos - beginPos + 1 ) );
+                                return new CommentBlock( inputString.Substring( beginPos, endPos - beginPos + 1 ) );
                             else
-                                
-                            continue;
-                            */
+                                continue;
                         }
                         break;
                     case QUOTE_CHAR:
                         StringBuilder sb = new StringBuilder();
                         pos++;
                         endPos++;
-                        for( ; endPos != maxPos; endPos++ ) {
+                        for(; endPos != maxPos; endPos++ ) {
                             if( inputString[endPos] == QUOTE_CHAR ) {
                                 beginPos = pos;
                                 pos = endPos + 1;

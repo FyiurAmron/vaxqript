@@ -1,10 +1,12 @@
-using System;
-using System.Collections;
-using System.Text;
+﻿using System;
 
 namespace vax.vaxqript {
-    public class ValueWrapper : IWrapper  {
-        public object Value { get; set; }
+    /*
+    public class ExecutableWrapper : IWrapper {
+        public ExecutableWrapper () {
+        }
+
+        public IExecutable Executable { get; set; }
 
         public object eval ( Engine engine ) {
             return Value;
@@ -35,8 +37,9 @@ namespace vax.vaxqript {
         }
 
         public override string ToString () {
-            return "/* " + Value.GetType().Name + " */ " + valueToString();
+            return "/* " + Value.GetType().Name + " * / " + valueToString();
         }
     }
+*/
 }
 

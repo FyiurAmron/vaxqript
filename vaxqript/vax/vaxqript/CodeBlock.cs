@@ -52,7 +52,7 @@ namespace vax.vaxqript {
 
         private void _add ( object obj ) {
             ISyntaxElement ise = obj as ISyntaxElement;
-            _add( ( ise != null ) ? ise : new ValueWrapper( obj ) );
+            _add( ( ise != null ) ? ise : Wrapper.wrap( obj ) );
         }
 
         public void add ( object obj ) {
