@@ -52,18 +52,51 @@ namespace vax.vaxqript {
             identifierMap[identifier.Name] = identifier;
             _setIdentifierValue( identifier, value );
         }
+        /*
+        public void setIdentifierValue ( Identifier identifier, object value ) {
+            identifierMap[identifier.Name] = identifier;
+            _setIdentifierValue( identifier, value );
+        }*/
 
         private void _setIdentifierValue ( Identifier identifier, object value ) {
             globalVarMap[identifier] = value; // TODO support access modifiers & levels etc
         }
 
+        private object delegateToObject ( Func<object[], object> func ) { // has to be done this way to signal which exact delegate type is expected here
+            return func;
+        }
+
         protected void createDefaultVariables () {
+            // value-type (literal) default vars
+            setIdentifierValue( "null", null );
             setIdentifierValue( "true", true );
             setIdentifierValue( "false", false );
-            setIdentifierValue( "$ret", retVal );
-            setIdentifierValue( "$engine", this );
             setIdentifierValue( "Infinity", float.PositiveInfinity );
-            //etc
+            setIdentifierValue( "NaN", float.NaN );
+
+            setIdentifierValue( "$engine", this );
+            setIdentifierValue( "$ret", retVal );
+
+            // method-type (delegate) default vars
+            setIdentifierValue( "print", delegateToObject( (objs ) => {
+                foreach( object o in objs ) {
+                    Console.Write( ( o == null ) ? "null" : o );
+                }
+                return null;
+            } ) );
+            setIdentifierValue( "println", delegateToObject( (objs ) => {
+                foreach( object o in objs ) {
+                    Console.WriteLine( ( o == null ) ? "null" : o );
+                }
+                return null;
+            } ) );
+            setIdentifierValue( "if", delegateToObject( (objs ) => { // TODO implement 'else'
+                return ( ( objs[0] as bool? ) ?? false ) ? objs[1] : null;
+            } ) );
+
+            // note: by default, with 'func(arg0,arg1...)' syntax, obj[0] contains *all* arguments passed, wrapped as a CodeBlock;
+            // to pass the arguments *directly*, use 'func arg0 arg1'
+            // - this is *strictly* required for composite (multi-block) methods (like 'for', 'while' etc) to work at all!
         }
 
         protected void createDefaultOperators () {

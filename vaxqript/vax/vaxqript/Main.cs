@@ -11,13 +11,40 @@ namespace vax.vaxqript {
             test1a( engine ); // completed
             Console.WriteLine( "=== TEST 1b ===" );
             test1b( engine ); // completed
-            Console.WriteLine( "=== TEST 2  ===" );
-            test2( engine ); // completed
+            Console.WriteLine( "=== TEST 2a  ===" );
+            test2a( engine ); // completed
+            Console.WriteLine( "=== TEST 2b  ===" );
+            test2b( engine ); // completed
             Console.WriteLine( "=== TEST 3  ===" );
             engine.setIdentifierValue( "testObj1", new AddTestClass() );
             engine.setIdentifierValue( "testArr1", new int[]{ 2, 3, 5, 7, 11 } );
-            engine.setIdentifierValue( "testArr2", new int[][]{ new int[]{ 2, 3, 5, 7, 11 }, new int[]{ 1, 2, 3, 4, 5 }, new int[]{ 2, 4, 6, 8, 10 } } );
-            engine.setIdentifierValue( "testArr3", new int[,]{ { 2, 3, 5, 7, 11 }, { 1, 2, 3, 4, 5 }, { 2, 4, 6, 8, 10 }, { 1, 1, 2, 3, 5 } } );
+            engine.setIdentifierValue( "testArr2", new int[][] {
+                new int[]{ 2, 3, 5, 7, 11 },
+                new int[]{ 1, 2, 3, 4, 5 },
+                new int[] {
+                    2,
+                    4,
+                    6,
+                    8,
+                    10
+                }
+            } );
+            engine.setIdentifierValue( "testArr3", new int[,] {
+                { 2, 3, 5, 7, 11 },
+                { 1, 2, 3, 4, 5 }, {
+                    2,
+                    4,
+                    6,
+                    8,
+                    10
+                }, {
+                    1,
+                    1,
+                    2,
+                    3,
+                    5
+                }
+            } );
             string[] inputs = {
                 "{ + 4 1 { * 3 11 } }",
                 "{ + 4 2 { * 3 3",
@@ -36,7 +63,9 @@ namespace vax.vaxqript {
                     i++;
                     i + 7;
                 }",
-                "testObj1 + 1"
+                "testObj1 + 1",
+                "println(\"!!! text output\"+\"\t\"+ 7)",
+                "if ((2+2)==4) {42}"
             };
             foreach( string s in inputs ) {
                 test3( s, engine ); // completed
@@ -123,10 +152,17 @@ namespace vax.vaxqript {
             Console.WriteLine( engine.eval( cb2 ) );
         }
 
-        public static void test2 ( Engine engine ) {
+        public static void test2a ( Engine engine ) {
             var sl = new StringLexer( " test; 42 /* blok */ { + ++ += //slowo xlowo3 aaa } .\nslowo xlowo3 aaa.} \"strin\" 123 3.14", engine );
+            Console.WriteLine( sl.createLinearSyntax().debugToString() );
+            Console.WriteLine( "" + sl.createLinearSyntax() );
+        }
+
+        public static void test2b ( Engine engine ) {
+            var sl = new StringLexer( "for(i=1;i<2;i++) { print(i); }", engine );
 
             Console.WriteLine( sl.createLinearSyntax().debugToString() );
+            Console.WriteLine( "" + sl.createLinearSyntax() );
         }
 
         public static void test3 ( string input, Engine engine ) {

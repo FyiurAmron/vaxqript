@@ -55,6 +55,12 @@
     <Compile Include="vax\vaxqript\HoldType.cs" />
     <Compile Include="vax\vaxqript\Associativity.cs" />
     <Compile Include="vax\vaxqript\MiscUtils.cs" />
+    <Compile Include="vax\vaxqript\CommentLine.cs" />
+    <Compile Include="vax\vaxqript\CommentBlock.cs" />
+    <Compile Include="vax\vaxqript\IWrapper.cs" />
+    <Compile Include="vax\vaxqript\Wrapper.cs" />
+    <Compile Include="vax\vaxqript\ExecutableWrapper.cs" />
+    <Compile Include="vax\vaxqript\IComment.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

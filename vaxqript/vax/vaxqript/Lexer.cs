@@ -28,7 +28,7 @@ namespace vax.vaxqript {
             'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'
         },
             known_numeric_char = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' },
-            known_numeric_char_ext = { '.'/*, 'E', 'd', 'f'*/ },
+            known_numeric_char_ext = { '.', 'e', 'E',/* 'd', 'f'*/ },
             known_identifier_char_ext = { '_', '$'/*, '.'*/ };
         //known_flow_control_char = { '@', ';', ',', '#', '(', ')', '[', ']', '{', '}' };
         protected readonly static int[] // note: this allows for easy introduction of higher radices (e.g. hex digits)
@@ -165,12 +165,20 @@ namespace vax.vaxqript {
         public StringLexer ( string inputString, Engine engine ) {
             this.inputString = inputString;
             this.engine = engine;
+            _reset();
+        }
+
+        private void _reset () {
             pos = 0;
             maxPos = inputString.Length;
         }
 
+        public void reset () {
+            _reset();
+        }
+
         protected bool skipWhitespace () {
-            for(; pos != maxPos; pos++ ) {
+            for( ; pos != maxPos; pos++ ) {
                 if( !is_whitespace[inputString[pos]] )
                     return true;
             }
@@ -180,7 +188,7 @@ namespace vax.vaxqript {
 
 
         protected bool findEndingWhitespace () {
-            for(; endPos != maxPos; endPos++ ) {
+            for( ; endPos != maxPos; endPos++ ) {
                 if( is_whitespace[inputString[endPos]] )
                     return true;
             }
@@ -189,7 +197,7 @@ namespace vax.vaxqript {
         }
 
         protected bool findEndingNewline () {
-            for(; endPos != maxPos; endPos++ ) {
+            for( ; endPos != maxPos; endPos++ ) {
                 if( is_newline[inputString[endPos]] )
                     return true;
             }
@@ -198,7 +206,7 @@ namespace vax.vaxqript {
         }
 
         protected bool findIdentifierEnd () {
-            for(; endPos != maxPos; endPos++ ) {
+            for( ; endPos != maxPos; endPos++ ) {
                 if( !is_identifier[inputString[endPos]] )
                     return true;
             }
@@ -206,17 +214,19 @@ namespace vax.vaxqript {
             return false;
         }
 
+        /*
         protected bool findNumberEnd () {
-            for(; endPos != maxPos; endPos++ ) {
+            for( ; endPos != maxPos; endPos++ ) {
                 if( !is_numeric_ext[inputString[endPos]] )
                     return true;
             }
             endPos--;
             return false;
         }
+        */
 
         protected bool findOperatorEnd () {
-            for(; endPos != maxPos; endPos++ ) {
+            for( ; endPos != maxPos; endPos++ ) {
                 char input = inputString[endPos];
                 if( is_whitespace[input] || is_identifier[input] || is_numeric[input]
                     || is_special[input] )
@@ -249,6 +259,7 @@ namespace vax.vaxqript {
             for( var t = getNextSyntaxElement(); t != null; t = getNextSyntaxElement() ) {
                 list.add( t );
             }
+            reset();
             return list;
         }
 
@@ -309,7 +320,7 @@ namespace vax.vaxqript {
                         StringBuilder sb = new StringBuilder();
                         pos++;
                         endPos++;
-                        for(; endPos != maxPos; endPos++ ) {
+                        for( ; endPos != maxPos; endPos++ ) {
                             if( inputString[endPos] == QUOTE_CHAR ) {
                                 beginPos = pos;
                                 pos = endPos + 1;
@@ -343,6 +354,10 @@ namespace vax.vaxqript {
                         pos++;
                         endPos++;
                         return FlowOperator.valueOf( Flow.UpDown );
+                    case SEPARATOR_CHAR:
+                        pos++;
+                        endPos++;
+                        continue;
                     }
                 } else {
                     switch (firstChar) {
@@ -363,24 +378,41 @@ namespace vax.vaxqript {
                     case COMMENT_CHAR:
                     case QUOTE_CHAR:
                     case PARSER_OP_CHAR:
+                    case SEPARATOR_CHAR:
                         throw new InvalidOperationException( "stray '" + firstChar + "' found near EOF" );
                     }
                 }
                 // "regular" cases
                 if( is_numeric[firstChar] ) {
-                    if( !findNumberEnd() ) {
-                        beginPos = pos;
-                        endPos++;
-                        pos = endPos;
-                    } else {
-                        beginPos = pos;
-                        pos = endPos;
-                    }
+                    bool hasExp = false, hasDot = false;
 
-                    string input = inputString.Substring( beginPos, endPos - beginPos /*endPos - 1*/ );
+                    for( ; endPos != maxPos; endPos++ ) {
+                        char c = inputString[endPos]; // TODO distinguish the special case of -/+ prefixing a number here
+                        if( is_numeric[c] ) {
+                            continue;
+                        }
+                        if( c == '.' ) {
+                            if( hasDot || hasExp ) {
+                                break;
+                            }
+                            hasDot = true;
+                        } else if( c == 'e' || c == 'E' ) {
+                            if( hasExp ) {
+                                break;
+                            }
+                            hasExp = true;
+                        } else {
+                            break;
+                        }
+                    }
+                    beginPos = pos;
+                    pos = endPos;
+
+                    string input = inputString.Substring( beginPos, endPos - beginPos );
+
                     int i;
                     float f;
-                    if( Int32.TryParse( input, out i ) ) { // todo support more numeric types later on
+                    if( !hasExp && !hasDot && Int32.TryParse( input, out i ) ) { // todo support more numeric types later on
                         return new ValueWrapper( i );    
                     } else if( Single.TryParse( input, out f ) ) {
                         return new ValueWrapper( f );
@@ -397,7 +429,7 @@ namespace vax.vaxqript {
                         pos = endPos;
                     }
 
-                    return new Identifier( inputString.Substring( beginPos, endPos - beginPos /*endPos - 1*/ ) );
+                    return new Identifier( inputString.Substring( beginPos, endPos - beginPos ) );
                 } else { // TODO distinguish the special case of -/+ prefixing a number here
                     if( !findOperatorEnd() ) {
                         beginPos = pos;
@@ -408,11 +440,11 @@ namespace vax.vaxqript {
                         pos = endPos;
                     }
 
-                    return engine.operatorValueOf( inputString.Substring( beginPos, endPos - beginPos /*endPos - 1*/ ) );
+                    return engine.operatorValueOf( inputString.Substring( beginPos, endPos - beginPos ) );
                 }
             }
             return null;
-            // NOTE: substring(int,int) takes (begin,end) in Java, but (begin,length) in c# !
+            // NOTE: substring(int,int) takes (begin,end) in Java, but (begin,length) in c# ! endPos - beginPos -> endPos - 1
         }
         // StringTokenizer(inputString)
     }

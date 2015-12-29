@@ -31,11 +31,28 @@ namespace vax.vaxqript {
             IExecutable iexe = syntaxElement as IExecutable;
             IEvaluable ieva = syntaxElement as IEvaluable;
             if( iexe != null ) {
+                Identifier id = syntaxElement as Identifier;
+                if( id != null ) {
+                    if( arguments.Count == 0 && executable == null ) {
+                        executable = id;
+                    } else {
+                        arguments.Add( id );
+                    }
+                    return;
+                }
+                // if we're here, syntaxElement is a non-Identifier IExecutable (usually an Operator)
                 if( executable == null ) {
                     executable = iexe;
                     return;
                 } else if( executable.Equals( iexe ) ) {
-                    return; // skip redundant ops
+                    return; // skip redundant ops etc
+                } else {
+                    id = executable as Identifier;
+                    if( id != null ) { // op is more important, demote the Identifier to regular argument
+                        arguments.Insert( 0, id ); // since it *had* to be the first added ISyntaxElement
+                        executable = iexe;
+                        return;
+                    }
                 }
                 if( ieva == null ) {
                     throw new NotSupportedException( "non-evaluable executable element '" + executable
@@ -45,7 +62,7 @@ namespace vax.vaxqript {
                 return;
             }
             if( ieva == null ) {
-                throw new NotSupportedException( "unknown syntax element type '" + syntaxElement.GetType() + "'" );
+                throw new NotSupportedException( "unsupported syntax element type '" + syntaxElement.GetType() + "'" );
             }
             arguments.Add( ieva );
         }
