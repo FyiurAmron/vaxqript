@@ -59,7 +59,6 @@
     <Compile Include="vax\vaxqript\CommentBlock.cs" />
     <Compile Include="vax\vaxqript\IWrapper.cs" />
     <Compile Include="vax\vaxqript\Wrapper.cs" />
-    <Compile Include="vax\vaxqript\ExecutableWrapper.cs" />
     <Compile Include="vax\vaxqript\IComment.cs" />
     <Compile Include="vax\vaxqript\MethodWrapper.cs" />
     <Compile Include="vax\vaxqript\Undefined.cs" />

@@ -189,16 +189,20 @@ namespace vax.vaxqript {
         */
 
         public object eval ( Engine engine ) {
+            engine.increaseStackCount();
+            object ret, ret2;
             if( executable != null ) {
-                return executable.exec( engine, prepareArguments( engine ) );
-            }
-            object ret = null, ret2;
-            foreach( IEvaluable ie in arguments ) {
-                ret2 = ie.eval( engine );
-                if( ret2 != null ) {
-                    ret = ret2;
+                ret = executable.exec( engine, prepareArguments( engine ) );
+            } else {
+                ret = null;
+                foreach( IEvaluable ie in arguments ) {
+                    ret2 = ie.eval( engine );
+                    if( ret2 != null ) {
+                        ret = ret2;
+                    }
                 }
             }
+            engine.decreaseStackCount();
             return ret;
         }
     }

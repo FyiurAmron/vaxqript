@@ -16,10 +16,29 @@ namespace vax.vaxqript {
         private Identifier undefinedIdentifier = new Identifier( "undefined" );
         private ValueWrapper undefinedValue = new ValueWrapper( Undefined.INSTANCE );
 
+        private int stackCount = 0;
+
+        public int StackLimit { get; set; }
+
         public Engine () {
             UndefinedVariableBehaviour = UndefinedVariableBehaviour.ReturnRawNull;
+            StackLimit = 4096;
             createDefaultVariables();
             createDefaultOperators();
+        }
+
+        public void increaseStackCount () {
+            stackCount++;
+            if( stackCount > StackLimit ) {
+                throw new InvalidOperationException( "stack overflow" );
+            }
+        }
+
+        public void decreaseStackCount () {
+            stackCount--;
+            if( stackCount < 0 ) {
+                throw new InvalidOperationException( "stack underflow" );
+            }
         }
 
         private T  valueNotFound<T> ( string identifierName, T undefinedValue ) {

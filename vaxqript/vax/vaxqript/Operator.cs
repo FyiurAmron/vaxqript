@@ -29,8 +29,7 @@ namespace vax.vaxqript {
             Associativity = associativity;
         }
 
-        public object exec ( Engine engine, params dynamic[] arguments ) {
-            // note: engine is ignored here since the engine-related lambdas are engine-instance-related anyway
+        private object _exec ( Engine engine, params dynamic[] arguments ) {
             switch (arguments.Length) {
             case 0:
                 return applyNullary();
@@ -39,6 +38,13 @@ namespace vax.vaxqript {
             default:
                 return applyNary( arguments );
             }
+        }
+
+        public object exec ( Engine engine, params dynamic[] arguments ) {
+            engine.increaseStackCount();
+            object ret = _exec( engine, arguments );
+            engine.decreaseStackCount();
+            return ret;
         }
 
         public dynamic applyNullary () {
@@ -58,7 +64,7 @@ namespace vax.vaxqript {
         public dynamic applyNary ( params dynamic[] arguments ) {
             dynamic result = arguments[0];
             int i = 1;
-            for(; i < arguments.Length; i++ ) {
+            for( ; i < arguments.Length; i++ ) {
                 IScriptOperatorOverload isoo = result as IScriptOperatorOverload;
                 if( isoo != null ) {
                     ValueWrapper ret = isoo.processLeft( OperatorString, arguments[i] );

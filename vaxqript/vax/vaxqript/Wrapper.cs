@@ -1,10 +1,12 @@
 ﻿using System;
 
 namespace vax.vaxqript {
-    public class Wrapper {
+    public static class Wrapper {
+        /*
         private Wrapper () {
             throw new InvalidOperationException();
         }
+        */
 
         public static ISyntaxElement wrap ( object o ) {
             IExecutable ie = o as IExecutable;
@@ -12,7 +14,6 @@ namespace vax.vaxqript {
                 return ie;
             return new ValueWrapper( o ); // ternary doesn't work due to conflicting types
         }
-
 
         public static ISyntaxElement[] wrap ( object[] objects ) {
             int max = objects.Length;

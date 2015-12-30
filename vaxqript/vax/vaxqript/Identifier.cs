@@ -10,13 +10,17 @@ namespace vax.vaxqript {
 
         public object eval ( Engine engine ) {
             ValueWrapper o = engine.getIdentifierValue( this );
-            if( o == null )
+            if( o == null ) {
                 return this;
+            }
             object val = o.Value;
             if( val == this )
                 throw new StackOverflowException( "trying to evaluate an Identifier directly referencing itself" );
             IEvaluable ie = val as IEvaluable;
-            return ( ie == null ) ? val : ie.eval( engine );
+            engine.increaseStackCount();
+            object ret = ( ie == null ) ? val : ie.eval( engine );
+            engine.decreaseStackCount();
+            return ret;
         }
 
         public object exec ( Engine engine, params dynamic[] arguments ) {
@@ -25,10 +29,12 @@ namespace vax.vaxqript {
                 throw new InvalidOperationException( "identifier '" + Name + "' not defined yet" );
 
             MethodWrapper methodWrapper = vw.Value as MethodWrapper;
-            if( methodWrapper == null ) {
-                return eval( engine );
-            }
-            return methodWrapper.invokeWith( arguments );
+            engine.increaseStackCount();
+            object ret = ( methodWrapper == null )
+                ? eval( engine )
+                : methodWrapper.invokeWith( arguments );
+            engine.decreaseStackCount();
+            return ret;
         }
 
         public override bool Equals ( object obj ) {
