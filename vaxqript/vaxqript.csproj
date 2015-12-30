@@ -61,6 +61,9 @@
     <Compile Include="vax\vaxqript\Wrapper.cs" />
     <Compile Include="vax\vaxqript\ExecutableWrapper.cs" />
     <Compile Include="vax\vaxqript\IComment.cs" />
+    <Compile Include="vax\vaxqript\MethodWrapper.cs" />
+    <Compile Include="vax\vaxqript\Undefined.cs" />
+    <Compile Include="vax\vaxqript\UndefinedVariableBehaviour.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

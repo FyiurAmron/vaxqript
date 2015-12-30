@@ -24,12 +24,11 @@ namespace vax.vaxqript {
             if( vw == null )
                 throw new InvalidOperationException( "identifier '" + Name + "' not defined yet" );
 
-            Func<object[],object> func = vw.Value as Func<object[],object>;
-            if( func == null ) {
-                //throw new InvalidOperationException( "identifier '" + Name + "' doesn't refer to a valid Func<object[],object>" );
+            MethodWrapper methodWrapper = vw.Value as MethodWrapper;
+            if( methodWrapper == null ) {
                 return eval( engine );
             }
-            return func( arguments );
+            return methodWrapper.invokeWith( arguments );
         }
 
         public override bool Equals ( object obj ) {

@@ -105,67 +105,78 @@ namespace vax.vaxqript {
             
             Operator op = executable as Operator;
             int max = arguments.Count;
+            HoldType holdType;
+            Associativity associativity;
             if( op != null ) {
-                switch (op.HoldType) {
-                case HoldType.First:
-                    if( op.Associativity == Associativity.LeftToRight ) {
-                        arr[0] = arguments[0];
-                        for( int i = 1; i < max; i++ ) {
-                            arr[i] = arguments[i].eval( engine );
-                        }
-                    } else {
-                        max--;
-                        arr[0] = arguments[max];
-                        for( int i = 1, j = max - 1; j >= 0; i++, j-- ) {
-                            arr[i] = arguments[j].eval( engine );
-                        }
-                    }
-                    return arr;
-                case HoldType.AllButFirst:
-                    if( op.Associativity == Associativity.LeftToRight ) {
-                        arr[0] = arguments[0].eval( engine );
-                        for( int i = 1; i < max; i++ ) {
-                            arr[i] = arguments[i];
-                        }
-                    } else {
-                        max--;
-                        arr[0] = arguments[max].eval( engine );
-                        for( int i = 1, j = max - 1; j >= 0; i++, j-- ) {
-                            arr[i] = arguments[j];
-                        }
-                    }
-                    return arr;
-                case HoldType.All:
-                    if( op.Associativity == Associativity.LeftToRight ) {
-                        for( int i = 0; i < max; i++ ) {
-                            arr[i] = arguments[i];
-                        }
-                    } else {
-                        for( int i = 0, j = max - 1; i < max; i++, j-- ) {
-                            arr[i] = arguments[j];
-                        }
-                    }
-                    return arr;
-                case HoldType.None:
-                    if( op.Associativity == Associativity.LeftToRight ) {
-                        for( int i = 0; i < max; i++ ) {
-                            arr[i] = arguments[i].eval( engine );
-                        }
-                    } else {
-                        for( int i = 0, j = max - 1; i < max; i++, j-- ) {
-                            arr[i] = arguments[j].eval( engine );
-                        }
-                    }
-                    break;
-                default:
-                    throw new InvalidOperationException( "unknown HoldType '" + op.HoldType + "'" );
+                holdType = op.HoldType;
+                associativity = op.Associativity;
+            } else {
+                Identifier id = executable as Identifier;
+                if( id != null ) { // if it's already added here, it ought to be a MethodWrapper's Identifier
+                    holdType = ( (MethodWrapper) engine.getIdentifierValue( id ).Value ).HoldType;
+                    associativity = Associativity.LeftToRight; // shouldn't matter here anyway; if it's needed, implement it in MethodWrapper
+                } else {
+                    throw new InvalidOperationException( "unknown/unsupported IExecutable type '" + executable.GetType().Name + "'" );
+                    /*
+                                    holdType = HoldType.None;
+                    associativity = Associativity.LeftToRight;
+                    */
                 }
             }
-            // default core behaviour
-            for( int i = 0; i < max; i++ ) {
-                arr[i] = arguments[i].eval( engine );
+            switch (holdType) {
+            case HoldType.First:
+                if( associativity == Associativity.LeftToRight ) {
+                    arr[0] = arguments[0];
+                    for( int i = 1; i < max; i++ ) {
+                        arr[i] = arguments[i].eval( engine );
+                    }
+                } else {
+                    max--;
+                    arr[0] = arguments[max];
+                    for( int i = 1, j = max - 1; j >= 0; i++, j-- ) {
+                        arr[i] = arguments[j].eval( engine );
+                    }
+                }
+                return arr;
+            case HoldType.AllButFirst:
+                if( associativity == Associativity.LeftToRight ) {
+                    arr[0] = arguments[0].eval( engine );
+                    for( int i = 1; i < max; i++ ) {
+                        arr[i] = arguments[i];
+                    }
+                } else {
+                    max--;
+                    arr[0] = arguments[max].eval( engine );
+                    for( int i = 1, j = max - 1; j >= 0; i++, j-- ) {
+                        arr[i] = arguments[j];
+                    }
+                }
+                return arr;
+            case HoldType.All:
+                if( associativity == Associativity.LeftToRight ) {
+                    for( int i = 0; i < max; i++ ) {
+                        arr[i] = arguments[i];
+                    }
+                } else {
+                    for( int i = 0, j = max - 1; i < max; i++, j-- ) {
+                        arr[i] = arguments[j];
+                    }
+                }
+                return arr;
+            case HoldType.None:
+                if( associativity == Associativity.LeftToRight ) {
+                    for( int i = 0; i < max; i++ ) {
+                        arr[i] = arguments[i].eval( engine );
+                    }
+                } else {
+                    for( int i = 0, j = max - 1; i < max; i++, j-- ) {
+                        arr[i] = arguments[j].eval( engine );
+                    }
+                }
+                return arr;
+            default:
+                throw new InvalidOperationException( "unknown HoldType '" + op.HoldType + "'" );
             }
-            return arr;
         }
 
         public override string ToString () {

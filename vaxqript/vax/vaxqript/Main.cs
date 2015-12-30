@@ -4,6 +4,9 @@ using System.Collections.Generic;
 
 namespace vax.vaxqript {
     public class MainClass {
+        private static string toString ( object o ) {
+            return ( o == null ) ? "null" : o.ToString();
+        }
 
         public static void Main ( string[] args ) {
             Engine engine = new Engine();
@@ -65,7 +68,9 @@ namespace vax.vaxqript {
                 }",
                 "testObj1 + 1",
                 "println(\"!!! text output\"+\"\t\"+ 7)",
-                "if ((2+2)==4) {42}"
+                "if ((2+2)==4) {42}",
+                "i=(-10);while(i<10){i++;}; i;",
+                "for(i=1;i<10;i++) { println(i); }"
             };
             foreach( string s in inputs ) {
                 test3( s, engine ); // completed
@@ -74,7 +79,7 @@ namespace vax.vaxqript {
 
             for( string line = Console.ReadLine(); line != null && line.Length != 0; line = Console.ReadLine() ) {
                 try {
-                    Console.WriteLine( ">>> " + engine.eval( line ) );
+                    Console.WriteLine( ">>> " + toString( engine.eval( line ) ) );
                 } catch (Exception ex) {
                     Console.WriteLine( ">>> EXCEPTION: " + ex.Message );
                 }
@@ -84,7 +89,7 @@ namespace vax.vaxqript {
         public static object operatorTest ( Engine engine, String opString, params dynamic[] arguments ) {
             try {
                 object ret = engine.debugApplyStringOperator( opString, arguments );
-                Console.WriteLine( ret );
+                Console.WriteLine( toString( ret ) );
                 return ret;
             } catch (Exception ex) {
                 Console.WriteLine( ">>> EXCEPTION: " + ex.Message );
@@ -95,7 +100,7 @@ namespace vax.vaxqript {
         public static object operatorTest ( Engine engine, Func<Engine,object> action ) {
             try {
                 object ret = action( engine );
-                Console.WriteLine( ret );
+                Console.WriteLine( toString( ret ) );
                 return ret;
             } catch (Exception ex) {
                 Console.WriteLine( ">>> EXCEPTION: " + ex.Message );
@@ -138,18 +143,18 @@ namespace vax.vaxqript {
             CodeBlock cb1 = new CodeBlock(), cb2 = new CodeBlock();
             cb1.addAll( engine.operatorValueOf( "+" ), new ValueWrapper( 42 ), new ValueWrapper( 2 ) );
             cb2.addAll( engine.operatorValueOf( "-" ), cb1, 46, new AddTestClass() );
-            Console.WriteLine( engine.eval( cb2 ) );
+            Console.WriteLine( toString( engine.eval( cb2 ) ) );
             cb2.clear();
             cb2.addAll( engine.operatorValueOf( "-" ), cb1, 46 );
-            Console.WriteLine( engine.eval( cb2 ) );
+            Console.WriteLine( toString( engine.eval( cb2 ) ) );
             cb2.clear();
             Operator smileOp = new Operator( ":-)", null, null );
             cb2.addAll( smileOp, cb1, new AddTestClass() );
-            Console.WriteLine( engine.eval( cb2 ) );
+            Console.WriteLine( toString( engine.eval( cb2 ) ) );
             cb2.clear();
             engine.addOperator( smileOp ); // add to cache
             cb2.addAll( engine.operatorValueOf( ":-)" ), new AddTestClass(), cb1 );
-            Console.WriteLine( engine.eval( cb2 ) );
+            Console.WriteLine( toString( engine.eval( cb2 ) ) );
         }
 
         public static void test2a ( Engine engine ) {
@@ -174,8 +179,7 @@ namespace vax.vaxqript {
             //Console.WriteLine( ls.debugToString() );
             CodeBlock cn = ls.buildParseTree();
             //Console.WriteLine( cn );
-            object o = engine.eval( cn );
-            Console.WriteLine( ( o == null ) ? "null" : o );
+            Console.WriteLine( toString( engine.eval( cn ) ) );
         }
     }
 

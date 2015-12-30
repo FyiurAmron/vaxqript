@@ -11,9 +11,28 @@ namespace vax.vaxqript {
         private Dictionary<string,Operator> operatorMap = new Dictionary<string,Operator>();
         private Dictionary<string,Identifier> identifierMap = new Dictionary<string,Identifier>();
 
+        public UndefinedVariableBehaviour UndefinedVariableBehaviour { get; set; }
+
+        private Identifier undefinedIdentifier = new Identifier( "undefined" );
+        private ValueWrapper undefinedValue = new ValueWrapper( Undefined.INSTANCE );
+
         public Engine () {
-            createDefaultOperators();
+            UndefinedVariableBehaviour = UndefinedVariableBehaviour.ReturnRawNull;
             createDefaultVariables();
+            createDefaultOperators();
+        }
+
+        private T  valueNotFound<T> ( string identifierName, T undefinedValue ) {
+            switch (UndefinedVariableBehaviour) {
+            case UndefinedVariableBehaviour.ReturnRawNull:
+                return default(T);
+            case UndefinedVariableBehaviour.ReturnUndefined:
+                return undefinedValue;
+            case UndefinedVariableBehaviour.ThrowException:
+                throw new InvalidOperationException( "identifier '" + identifierName + "' not defined yet" );
+            default:
+                throw new InvalidOperationException( "unknown/unsupported UndefinedVariableBehaviour '" + UndefinedVariableBehaviour + "'" );
+            }
         }
 
         public Identifier getIdentifier ( string identifierName ) {
@@ -21,7 +40,7 @@ namespace vax.vaxqript {
             if( identifierMap.TryGetValue( identifierName, out ret ) ) {
                 return ret;
             }
-            return null;
+            return valueNotFound( identifierName, undefinedIdentifier );
         }
 
         public ValueWrapper getIdentifierValue ( string identifierName ) {
@@ -34,7 +53,15 @@ namespace vax.vaxqript {
                 ValueWrapper vw = ret as ValueWrapper;
                 return ( vw != null ) ? vw : new ValueWrapper( ret );
             }
-            return null;
+            return valueNotFound( identifier.Name, undefinedValue );
+        }
+
+        protected object getIdentifierValueRaw ( Identifier identifier ) {
+            object ret;
+            if( globalVarMap.TryGetValue( identifier, out ret ) ) {
+                return ret;
+            }
+            return valueNotFound( identifier.Name, Undefined.INSTANCE );
         }
 
         public Identifier setIdentifierValue ( string identifierName, object value ) {
@@ -48,9 +75,10 @@ namespace vax.vaxqript {
             return ret;
         }
 
-        public void setIdentifierValue ( Identifier identifier, object value ) {
+        public T setIdentifierValue<T> ( Identifier identifier, T value ) {
             identifierMap[identifier.Name] = identifier;
             _setIdentifierValue( identifier, value );
+            return value;
         }
         /*
         public void setIdentifierValue ( Identifier identifier, object value ) {
@@ -58,15 +86,16 @@ namespace vax.vaxqript {
             _setIdentifierValue( identifier, value );
         }*/
 
-        private void _setIdentifierValue ( Identifier identifier, object value ) {
+        private T _setIdentifierValue<T> ( Identifier identifier, T value ) {
             globalVarMap[identifier] = value; // TODO support access modifiers & levels etc
-        }
-
-        private object delegateToObject ( Func<object[], object> func ) { // has to be done this way to signal which exact delegate type is expected here
-            return func;
+            return value;
         }
 
         protected void createDefaultVariables () {
+            if( UndefinedVariableBehaviour == UndefinedVariableBehaviour.ReturnUndefined ) {
+                setIdentifierValue( undefinedIdentifier, Undefined.INSTANCE );
+            }
+
             // value-type (literal) default vars
             setIdentifierValue( "null", null );
             setIdentifierValue( "true", true );
@@ -78,44 +107,90 @@ namespace vax.vaxqript {
             setIdentifierValue( "$ret", retVal );
 
             // method-type (delegate) default vars
-            setIdentifierValue( "print", delegateToObject( (objs ) => {
+            setIdentifierValue( "print", new MethodWrapper( (objs ) => {
                 foreach( object o in objs ) {
                     Console.Write( ( o == null ) ? "null" : o );
                 }
                 return null;
             } ) );
-            setIdentifierValue( "println", delegateToObject( (objs ) => {
+            setIdentifierValue( "println", new MethodWrapper( (objs ) => {
                 foreach( object o in objs ) {
                     Console.WriteLine( ( o == null ) ? "null" : o );
                 }
                 return null;
             } ) );
-            setIdentifierValue( "if", delegateToObject( (objs ) => { // TODO implement 'else'
+            setIdentifierValue( "if", new MethodWrapper( (objs ) => { // TODO implement 'else'
                 return ( ( objs[0] as bool? ) ?? false ) ? objs[1] : null;
             } ) );
+            setIdentifierValue( "while", new MethodWrapper( (objs ) => { // TODO implement 'else'
+                IEvaluable //
+                condition = objs[0] as IEvaluable,
+                body = objs[1] as IEvaluable;
+                while( ( condition.eval( this ) as bool? ) ?? false ) {
+                    body.eval( this ); // return is ignored here
+                }
+                return null; // TODO implement 'return' as loop breaker here
+            }, HoldType.All ) );
+            setIdentifierValue( "for", new MethodWrapper( (objs ) => { // TODO implement 'else'
+                IEvaluable //
+                init = objs[0] as IEvaluable,
+                condition = objs[1] as IEvaluable,
+                step = objs[2]as IEvaluable,
+                body = objs[3] as IEvaluable;
+                for( init.eval( this ); ( condition.eval( this ) as bool? ) ?? false; step.eval( this ) ) {
+                    body.eval( this );
+                }
+                return null; // TODO implement 'return' as loop breaker here
+            }, HoldType.All ) );
 
             // note: by default, with 'func(arg0,arg1...)' syntax, obj[0] contains *all* arguments passed, wrapped as a CodeBlock;
             // to pass the arguments *directly*, use 'func arg0 arg1'
             // - this is *strictly* required for composite (multi-block) methods (like 'for', 'while' etc) to work at all!
         }
 
+        private Func<dynamic,dynamic> lambda2 ( Func<dynamic,dynamic> func ) {
+            return func; // pseudo-casting needed for dynamic dispatch
+        }
+
+        private Func<dynamic,dynamic,dynamic> lambda3 ( Func<dynamic,dynamic, dynamic> func ) {
+            return func; // pseudo-casting needed for dynamic dispatch
+        }
+
+        private object wrappedLambda2 ( Identifier n, Func<dynamic,dynamic> func ) {
+            dynamic dyn = getIdentifierValueRaw( n );
+            dyn = func( dyn );
+            _setIdentifierValue( n, dyn );
+            return dyn;
+        }
+
+        private object wrappedLambda3 ( Identifier n, dynamic m, Func<dynamic,dynamic, dynamic> func ) {
+            dynamic dyn = getIdentifierValueRaw( n );
+            dyn = func( dyn, m );
+            _setIdentifierValue( n, dyn );
+            return dyn;
+        }
+
+        private Operator createAssignmentOperator ( string opString, Func<dynamic,dynamic> unary, Func<dynamic,dynamic,dynamic> nary ) {
+            return new Operator( opString,
+                ( unary != null ) ? lambda2( (n ) => wrappedLambda2( n, unary ) ) : null,
+                ( nary != null ) ? lambda3( (n, m ) => wrappedLambda3( n, m, nary ) ) : null,
+                HoldType.First );
+        }
+
+
         protected void createDefaultOperators () {
             Operator[] defaultOperators = {
-                new Operator( ".", (n ) => {
+                new Operator( ".", (n ) => { // TODO implement
                     return null;
                 }, (n, m ) => {
                     return null;
                 } ),
-                new Operator( "+", (n ) => {
-                    return +n;
-                }, (n, m ) => {
-                    return n + m;
-                } ),
-                new Operator( "-", (n ) => {
-                    return -n;
-                }, (n, m ) => {
-                    return n - m;
-                } ),
+                new Operator( "+",
+                    (n ) => +n,
+                    (n, m ) => n + m ),
+                new Operator( "-",
+                    (n ) => -n,
+                    (n, m ) => n - m ),
                 new Operator( "'", (n ) => { // Identifier<->string operator; coincidentally doubles as "alternative string quotes"
                     ValueWrapper vw = n as ValueWrapper;
                     if( vw != null ) {
@@ -146,79 +221,33 @@ namespace vax.vaxqript {
                     }
                     return n.GetType();
                 }, null, HoldType.None ),
-                new Operator( "!", (n ) => {
-                    return !n;
-                }, null ),
-                new Operator( "~", (n ) => {
-                    return ~n;
-                }, null ),
-                new Operator( "++", (n ) => {
-                    return ++globalVarMap[n];
-                }, null, HoldType.First ),
-                new Operator( "--", (n ) => {
-                    return --globalVarMap[n];
-                }, null, HoldType.First ),
-                new Operator( "*", null, (n, m ) => {
-                    return n * m;
-                } ),
-                new Operator( "/", null, (n, m ) => {
-                    return n / m;
-                } ),
-                new Operator( "%", null, (n, m ) => {
-                    return n % m;
-                } ),
-                new Operator( "|", null, (n, m ) => {
-                    return n | m;
-                } ),
-                new Operator( "||", null, (n, m ) => {
-                    return n || m;
-                } ),
-                new Operator( "&", null, (n, m ) => {
-                    return n & m;
-                } ),
-                new Operator( "&&", null, (n, m ) => {
-                    return n && m;
-                } ),
-                new Operator( "^", null, (n, m ) => {
-                    return n ^ m;
-                } ),
-                new Operator( "<<", null, (n, m ) => {
-                    return n << m;
-                } ),
-                new Operator( ">>", null, (n, m ) => {
-                    return n >> m;
-                } ),
-                new Operator( "==", null, (n, m ) => {
-                    return n == m;
-                } ),
-                new Operator( "!=", null, (n, m ) => {
-                    return n != m;
-                } ),
-                new Operator( ">", null, (n, m ) => {
-                    return n > m;
-                } ),
-                new Operator( ">=", null, (n, m ) => {
-                    return n >= m;
-                } ),
-                new Operator( "<", null, (n, m ) => {
-                    return n < m;
-                } ),
-                new Operator( "<=", null, (n, m ) => {
-                    return n <= m;
-                } ),
-                new Operator( "??", null, (n, m ) => {
-                    return n ?? m;
-                } ),
+                new Operator( "!", (n ) => !n, null ),
+                new Operator( "~", (n ) => ~n, null ),
+                createAssignmentOperator( "++", (n ) => ++n, null ),
+                createAssignmentOperator( "--", (n ) => --n, null ),
+                new Operator( "*", null, (n, m ) => n * m ),
+                new Operator( "/", null, (n, m ) => n / m ),
+                new Operator( "%", null, (n, m ) => n % m ),
+                new Operator( "|", null, (n, m ) => n | m ),
+                new Operator( "||", null, (n, m ) => n || m ),
+                new Operator( "&", null, (n, m ) => n & m ),
+                new Operator( "&&", null, (n, m ) => n && m ),
+                new Operator( "^", null, (n, m ) => n ^ m ),
+                new Operator( "<<", null, (n, m ) => n << m ),
+                new Operator( ">>", null, (n, m ) => n >> m ),
+                new Operator( "==", null, (n, m ) => n == m ),
+                new Operator( "!=", null, (n, m ) => n != m ),
+                new Operator( ">", null, (n, m ) => n > m ),
+                new Operator( ">=", null, (n, m ) => n >= m ),
+                new Operator( "<", null, (n, m ) => n < m ),
+                new Operator( "<=", null, (n, m ) => n <= m ),
+                new Operator( "??", null, (n, m ) => n ?? m ),
                 // TODO ternary as "?:"
                 new Operator( "=", null, (n, m ) => {
-                    // varMap[n] = m; // we inverted the associativity here
-                    // return m;
                     setIdentifierValue( m, n );
                     return n;
                 }, HoldType.AllButFirst, Associativity.RightToLeft ),
                 new Operator( ":=", null, (n, m ) => {
-                    // varMap[n] = m; // we inverted the associativity here
-                    // return m;
                     setIdentifierValue( m, n );
                     return n;
                 }, HoldType.All, Associativity.RightToLeft ),
@@ -226,8 +255,9 @@ namespace vax.vaxqript {
                     // since we have HoldType.First here
                     Identifier id = n as Identifier;
                     if( id != null ) {
-                        globalVarMap[id] += m;
-                        return n;
+                        return wrappedLambda3( id, m, lambda3(
+                            (n2, m2 ) => n2 + m2
+                        ) );
                     }
                         
                     ValueWrapper wrap = n as ValueWrapper;
@@ -251,8 +281,9 @@ namespace vax.vaxqript {
                     // since we have HoldType.First here
                     Identifier id = n as Identifier;
                     if( id != null ) {
-                        globalVarMap[n] -= m;
-                        return n;
+                        return wrappedLambda3( id, m, lambda3(
+                            (n2, m2 ) => n2 - m2
+                        ) );
                     }
 
                     ValueWrapper wrap = n as ValueWrapper;
@@ -273,48 +304,29 @@ namespace vax.vaxqript {
                     }
                     throw new InvalidOperationException();
                 }, HoldType.First ),
-                new Operator( "*=", null, (n, m ) => {
-                    globalVarMap[n] *= m;
-                    return n;
-                }, HoldType.First ),
-                new Operator( "/=", null, (n, m ) => {
-                    globalVarMap[n] /= m;
-                    return n;
-                }, HoldType.First ),
-                new Operator( "%=", null, (n, m ) => {
-                    globalVarMap[n] %= m;
-                    return n;
-                }, HoldType.First ),
-                new Operator( "&=", null, (n, m ) => {
-                    globalVarMap[n] &= m;
-                    return n;
-                }, HoldType.First ),
-                new Operator( "|=", null, (n, m ) => {
-                    globalVarMap[n] |= m;
-                    return n;
-                }, HoldType.First ),
-                new Operator( "^=", null, (n, m ) => {
-                    globalVarMap[n] ^= m;
-                    return n;
-                }, HoldType.First ),
-                new Operator( "<<=", null, (n, m ) => {
-                    globalVarMap[n] <<= m;
-                    return n;
-                }, HoldType.First ),
-                new Operator( ">>=", null, (n, m ) => {
-                    globalVarMap[n] >>= m;
-                    return n;
-                }, HoldType.First ),
+                createAssignmentOperator( "*=", null, (n, m ) => n * m ),
+                createAssignmentOperator( "/=", null, (n, m ) => n / m ),
+                createAssignmentOperator( "%=", null, (n, m ) => n % m ),
+                createAssignmentOperator( "&=", null, (n, m ) => n & m ),
+                createAssignmentOperator( "|=", null, (n, m ) => n | m ),
+                createAssignmentOperator( "^=", null, (n, m ) => n ^ m ),
+                createAssignmentOperator( "<<=", null, (n, m ) => n << m ),
+                createAssignmentOperator( ">>=", null, (n, m ) => n >> m ),
             };
             foreach( Operator op in defaultOperators ) {
                 addOperator( op );
             }
-            Operator indexer = new Operator( "[]", null, (n, m ) => {
+            Operator indexer = new Operator( "[]", null,
+                                   (n, m ) => n[m] );
+            /*
+            Operator indexerSet = new Operator( "[]=", null,
+                (n, m ) => {
                 //if( n.GetType() == typeof(Array) ) {
                 //return ( (Array) n ).GetValue( m ); // a bit more error-resistant and error-sane than dynamic indexer use
                 //}
                 return n[m];
             } );
+            */
             /*
                 new Operator( "[,]", null, (n, m ) => {
                     Console.WriteLine( ""+n.GetType());
@@ -328,6 +340,7 @@ namespace vax.vaxqript {
             addOperator( indexer, "]" );
             addOperator( indexer, "[" );
             addOperator( indexer, "][" );
+            //addOperator( indexerSet );
         }
 
         public void addOperator ( Operator op ) {
