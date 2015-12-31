@@ -2,9 +2,10 @@
 using System.Collections.Generic;
 
 namespace vax.vaxqript {
-    public class CodeBlock : IEvaluable {
+    public class CodeBlock : IEvaluable {/*, IExecutable*/
         private List<IEvaluable> arguments = new List<IEvaluable>();
         private IExecutable executable;
+
 
         public CodeBlock () {
         }
@@ -104,17 +105,19 @@ namespace vax.vaxqript {
                 return arr;
             
             Operator op = executable as Operator;
-            int max = arguments.Count;
             HoldType holdType;
-            Associativity associativity;
+            Associativity associativity; // used by Operatator class mostly
+            int max = arguments.Count;
+
             if( op != null ) {
                 holdType = op.HoldType;
                 associativity = op.Associativity;
             } else {
                 Identifier id = executable as Identifier;
                 if( id != null ) { // if it's already added here, it ought to be a MethodWrapper's Identifier
-                    holdType = ( (MethodWrapper) engine.getIdentifierValue( id ).Value ).HoldType;
-                    associativity = Associativity.LeftToRight; // shouldn't matter here anyway; if it's needed, implement it in MethodWrapper
+                    IHoldable idih = (IHoldable) engine.getIdentifierValue( id ).Value;
+                    holdType = idih.getHoldType( engine );
+                    associativity = Associativity.LeftToRight; // shouldn't matter here anyway; if it's needed, implement it in MethodWrapper or interface it
                 } else {
                     throw new InvalidOperationException( "unknown/unsupported IExecutable type '" + executable.GetType().Name + "'" );
                     /*
@@ -179,28 +182,45 @@ namespace vax.vaxqript {
             }
         }
 
+        public bool isEmpty () {
+            return executable == null && arguments.Count == 0;
+        }
+
         public override string ToString () {
             return " { " + executable + " " + string.Join( " ", arguments ) + " } ";
         }
         /*
-        public object exec ( params dynamic[] arguments ) {
-            return executable.exec( arguments );
+        public HoldType getHoldType ( Engine engine ) {
+            return HoldType.None; // default behaviour - use ScriptMethod wrapper to change it
         }
-        */
 
+        public object exec ( Engine engine, params dynamic[] arguments ) {
+            engine.setIdentifierValue( "$args", arguments ); // TEMP, use proper local vars later on
+            return eval( engine );
+        }
+*/
         public object eval ( Engine engine ) {
             engine.increaseStackCount();
-            object ret, ret2;
+            object ret;
             if( executable != null ) {
                 ret = executable.exec( engine, prepareArguments( engine ) );
             } else {
-                ret = null;
-                foreach( IEvaluable ie in arguments ) {
-                    ret2 = ie.eval( engine );
-                    if( ret2 != null ) {
-                        ret = ret2;
-                    }
+                int count = arguments.Count, i;
+                if( count == 0 ) {
+                    return null;
                 }
+                ValueList retList = new ValueList( count );
+                //count--;
+                for( i = 0; i < count; i++ ) {
+                    retList.Add( arguments[i].eval( engine ) );
+                }
+                /*
+                CodeBlock cb = arguments[i] as CodeBlock; // skip the terminating semicolon/empty block
+                if( cb == null || !cb.isEmpty() ) {
+                    retList.Add( arguments[i].eval( engine ) );
+                }
+                */
+                ret = retList;
             }
             engine.decreaseStackCount();
             return ret;

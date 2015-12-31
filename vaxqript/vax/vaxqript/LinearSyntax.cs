@@ -45,6 +45,7 @@ namespace vax.vaxqript {
             foreach( var elem in ElementList ) {
                 ctb.consume( elem );
             }
+            ctb.end(); // not strictly required, but e.g. cleans up stray ';'
             return ctb.getRoot();
         }
     }

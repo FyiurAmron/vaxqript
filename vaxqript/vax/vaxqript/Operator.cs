@@ -29,6 +29,10 @@ namespace vax.vaxqript {
             Associativity = associativity;
         }
 
+        public HoldType getHoldType ( Engine engine ) {
+            return HoldType;
+        }
+
         private object _exec ( Engine engine, params dynamic[] arguments ) {
             switch (arguments.Length) {
             case 0:
@@ -64,7 +68,7 @@ namespace vax.vaxqript {
         public dynamic applyNary ( params dynamic[] arguments ) {
             dynamic result = arguments[0];
             int i = 1;
-            for( ; i < arguments.Length; i++ ) {
+            for(; i < arguments.Length; i++ ) {
                 IScriptOperatorOverload isoo = result as IScriptOperatorOverload;
                 if( isoo != null ) {
                     ValueWrapper ret = isoo.processLeft( OperatorString, arguments[i] );

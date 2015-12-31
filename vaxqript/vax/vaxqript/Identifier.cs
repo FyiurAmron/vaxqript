@@ -8,6 +8,10 @@ namespace vax.vaxqript {
             Name = text;
         }
 
+        public HoldType getHoldType ( Engine engine ) {
+            return ( (IExecutable) engine.getIdentifierValue( this ).Value ).getHoldType( engine );
+        } // note: shouldn't be used in normal situations
+
         public object eval ( Engine engine ) {
             ValueWrapper o = engine.getIdentifierValue( this );
             if( o == null ) {

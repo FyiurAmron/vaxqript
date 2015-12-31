@@ -2,6 +2,7 @@
 using Microsoft.CSharp.RuntimeBinder;
 using System.Collections.Generic;
 using System.Collections;
+using System.Reflection;
 
 namespace vax.vaxqript {
     public class Engine {
@@ -126,17 +127,24 @@ namespace vax.vaxqript {
             setIdentifierValue( "$ret", retVal );
 
             // method-type (delegate) default vars
-            setIdentifierValue( "print", new MethodWrapper( (objs ) => {
-                foreach( object o in objs ) {
-                    Console.Write( ( o == null ) ? "null" : o );
+            //// basic syntax
+            setIdentifierValue( "new", new MethodWrapper( (objs ) => {
+                ValueList args = ( objs.Length > 1 ) ? objs[1] as ValueList : null; // only permissible objs[1] type now
+
+                Type t = objs[0] as Type;
+                if( t != null ) { // TODO: test if this handles structs well/at all
+                    if( t.IsPrimitive ) {
+                        t = typeof(Nullable<>).MakeGenericType( t );
+                    }
+                    Type[] types = ( args != null ) ? MiscUtils.toTypes( args ) : MiscUtils.NO_ARGUMENTS;
+                    ConstructorInfo ci = t.GetConstructor( types );
+                    if( ci == null ) {
+                        throw new InvalidOperationException( "constructor " + t + "(" + MiscUtils.join( ",", types ) + ") not found" );
+                    }
+                    return ci.Invoke( args.ToArray() );
                 }
                 return null;
-            } ) );
-            setIdentifierValue( "println", new MethodWrapper( (objs ) => {
-                foreach( object o in objs ) {
-                    Console.WriteLine( ( o == null ) ? "null" : o );
-                }
-                return null;
+                //return ( ( objs[0] as bool? ) ?? false ) ? objs[1] : null;
             } ) );
             setIdentifierValue( "if", new MethodWrapper( (objs ) => { // TODO implement 'else'
                 return ( ( objs[0] as bool? ) ?? false ) ? objs[1] : null;
@@ -161,6 +169,20 @@ namespace vax.vaxqript {
                 }
                 return null; // TODO implement 'return' as loop breaker here
             }, HoldType.All ) );
+
+            //// utility methods
+            setIdentifierValue( "print", new MethodWrapper( (objs ) => {
+                foreach( object o in objs ) {
+                    Console.Write( ( o == null ) ? "null" : o );
+                }
+                return null;
+            } ) );
+            setIdentifierValue( "println", new MethodWrapper( (objs ) => {
+                foreach( object o in objs ) {
+                    Console.WriteLine( ( o == null ) ? "null" : o );
+                }
+                return null;
+            } ) );
 
             // note: by default, with 'func(arg0,arg1...)' syntax, obj[0] contains *all* arguments passed, wrapped as a CodeBlock;
             // to pass the arguments *directly*, use 'func arg0 arg1'

@@ -6,34 +6,47 @@ namespace vax.vaxqript {
         private Stack<CodeBlock> codeBlockStack = new Stack<CodeBlock>();
         private CodeBlock root = new CodeBlock();
         private CodeBlock currentCodeBlock;
-        private bool implicitFirstDown = true;
+        private bool implicitFirstDown = true,
+            ignoreLastUpDown = true;
+        // i.e. ';}' sequence, that should usually be interpreted as just '}'
+        private Flow lastFlow = Flow.None;
 
         public CodeTreeBuilder () {
             currentCodeBlock = root;
             if( implicitFirstDown )
-                down();
+                _down();
         }
 
         public void consume ( ISyntaxElement syntaxElement ) {
-            FlowOperator flow = syntaxElement as FlowOperator;
-            if( flow != null ) {
-                switch (flow.Flow) {
+            FlowOperator flowOp = syntaxElement as FlowOperator;
+            if( flowOp != null ) {
+                Flow flow = flowOp.Flow;
+                switch (flow) {
                 case Flow.Down:
-                    down();
-                    return;
+                    _down();
+                    break;
                 case Flow.Up:
-                    up();
-                    return;
+                    _upExt();
+                    break;
                 case Flow.UpDown:
-                    up();
-                    down();
-                    return;
+                    _up();
+                    _down();
+                    break;
                 default:
-                    throw new InvalidOperationException( "unknown Flow '" + flow.Flow + "'" );
+                    throw new InvalidOperationException( "unknown/unsupported Flow '" + flow + "'" );
                 }
-            } // else not a flow, so just attach as a node
-            if( !( syntaxElement is IComment ) )
+                lastFlow = flow;
+                return;
+            }  // else not a flow, so just attach as a node
+            if( !( syntaxElement is IComment ) ) {
+                lastFlow = Flow.None;
                 currentCodeBlock.add( syntaxElement );
+            }
+            // else just ignore, since it's an IComment
+        }
+
+        public void end () {
+            _end();
         }
 
         public void down () {
@@ -41,7 +54,22 @@ namespace vax.vaxqript {
         }
 
         public void up () {
+            _upExt();
+        }
+
+        private void _up () {
+            currentCodeBlock = codeBlockStack.Pop();
+        }
+
+        private void _upExt () {
             _up();
+            if( ignoreLastUpDown && lastFlow == Flow.UpDown ) {
+                var list = currentCodeBlock.getArgumentList();
+                int count = list.Count;
+                if( count > 0 ) {
+                    list.RemoveAt( count - 1 );
+                }
+            }
         }
 
         private void _down () {
@@ -51,8 +79,10 @@ namespace vax.vaxqript {
             currentCodeBlock = newBlock;
         }
 
-        private void _up () {
-            currentCodeBlock = codeBlockStack.Pop();
+        private void _end () {
+            while( codeBlockStack.Count > 0 ) {
+                _upExt();
+            }
         }
 
         public CodeBlock getRoot () {

@@ -7,7 +7,7 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>vaxqript</RootNamespace>
     <AssemblyName>vaxqript</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <DebugSymbols>true</DebugSymbols>
@@ -63,6 +63,9 @@
     <Compile Include="vax\vaxqript\MethodWrapper.cs" />
     <Compile Include="vax\vaxqript\Undefined.cs" />
     <Compile Include="vax\vaxqript\UndefinedVariableBehaviour.cs" />
+    <Compile Include="vax\vaxqript\ScriptMethod.cs" />
+    <Compile Include="vax\vaxqript\IHoldable.cs" />
+    <Compile Include="vax\vaxqript\ValueList.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

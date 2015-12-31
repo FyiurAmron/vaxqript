@@ -8,6 +8,10 @@ namespace vax.vaxqript {
             return ( o == null ) ? "null" : o.ToString();
         }
 
+        private static string exceptionToString ( Exception ex ) {
+            return ">>> EXCEPTION: " + ex.GetType() + ":\n>>> " + ex.Message;
+        }
+
         public static void Main ( string[] args ) {
             Engine engine = new Engine();
             Console.WriteLine( "=== TEST 1a ===" );
@@ -19,6 +23,52 @@ namespace vax.vaxqript {
             Console.WriteLine( "=== TEST 2b  ===" );
             test2b( engine ); // completed
             Console.WriteLine( "=== TEST 3  ===" );
+            setupTestArrays( engine );
+            test3( engine );
+            Console.WriteLine( "=== TEST 4  ===" );
+
+            string[] inputs = {
+                "println(\"!!! text output\"+\"\t\"+ 7)",
+                "if ((2+2)==4) {42}",
+                "i=(-10);while(i<10){i++;}; i;",
+                "for(i=1;i<10;i++) { println(i); }"
+            };
+
+            testRun( inputs, engine );
+
+            Console.WriteLine( "=== READ-EVAL-PRINT LOOP ===" );
+            for( string line = Console.ReadLine(); line != null && line.Length != 0; line = Console.ReadLine() ) {
+                try {
+                    Console.WriteLine( ">>> " + toString( engine.eval( line ) ) );
+                } catch (Exception ex) {
+                    Console.WriteLine( exceptionToString( ex ) );
+                }
+            }
+        }
+
+        public static object operatorTest ( Engine engine, String opString, params dynamic[] arguments ) {
+            try {
+                object ret = engine.debugApplyStringOperator( opString, arguments );
+                Console.WriteLine( toString( ret ) );
+                return ret;
+            } catch (Exception ex) {
+                Console.WriteLine( exceptionToString( ex ) );
+                return null;
+            }
+        }
+
+        public static object operatorTest ( Engine engine, Func<Engine,object> action ) {
+            try {
+                object ret = action( engine );
+                Console.WriteLine( toString( ret ) );
+                return ret;
+            } catch (Exception ex) {
+                Console.WriteLine( exceptionToString(ex) );
+                return null;
+            }
+        }
+
+        public static void setupTestArrays ( Engine engine ) {
             engine.setIdentifierValue( "testObj1", new AddTestClass() );
             engine.setIdentifierValue( "testArr1", new int[]{ 2, 3, 5, 7, 11 } );
             engine.setIdentifierValue( "testArr2", new int[][] {
@@ -48,64 +98,6 @@ namespace vax.vaxqript {
                     5
                 }
             } );
-            string[] inputs = {
-                "{ + 4 1 { * 3 11 } }",
-                "{ + 4 2 { * 3 3",
-                "{ 4 + 2 + ( 3 * 3 )",
-                "4 + 2 + ( 3 * 3 )",
-                "4 + 2 + ( 3.1 * 3 )",
-                "foo",
-                "{ 4 + 2 + ( 3.1 * 3 ); 10.5; foo * 2", // note: 'foo' is declared in previous tests!
-                @"{
-                    i = 3;
-                    i++;
-                }",
-                @"{
-                    i = 3;
-                    i = 10;
-                    i++;
-                    i + 7;
-                }",
-                "testObj1 + 1",
-                "println(\"!!! text output\"+\"\t\"+ 7)",
-                "if ((2+2)==4) {42}",
-                "i=(-10);while(i<10){i++;}; i;",
-                "for(i=1;i<10;i++) { println(i); }"
-            };
-            foreach( string s in inputs ) {
-                test3( s, engine ); // completed
-            }
-            Console.WriteLine( "=== READ-EVAL LOOP ===" );
-
-            for( string line = Console.ReadLine(); line != null && line.Length != 0; line = Console.ReadLine() ) {
-                try {
-                    Console.WriteLine( ">>> " + toString( engine.eval( line ) ) );
-                } catch (Exception ex) {
-                    Console.WriteLine( ">>> EXCEPTION: " + ex.Message );
-                }
-            }
-        }
-
-        public static object operatorTest ( Engine engine, String opString, params dynamic[] arguments ) {
-            try {
-                object ret = engine.debugApplyStringOperator( opString, arguments );
-                Console.WriteLine( toString( ret ) );
-                return ret;
-            } catch (Exception ex) {
-                Console.WriteLine( ">>> EXCEPTION: " + ex.Message );
-                return null;
-            }
-        }
-
-        public static object operatorTest ( Engine engine, Func<Engine,object> action ) {
-            try {
-                object ret = action( engine );
-                Console.WriteLine( toString( ret ) );
-                return ret;
-            } catch (Exception ex) {
-                Console.WriteLine( ">>> EXCEPTION: " + ex.Message );
-                return null;
-            }
         }
 
         public static void test1a ( Engine engine ) {
@@ -136,7 +128,7 @@ namespace vax.vaxqript {
                 + '\n' + engine.debugApplyStringOperator( "||", engine.debugApplyStringOperator( "&&", true, true ), false );
             } );
 
-            operatorTest( engine, "`", "foo" );
+            operatorTest( engine, "'", fooI );
         }
 
         public static void test1b ( Engine engine ) {
@@ -170,7 +162,37 @@ namespace vax.vaxqript {
             Console.WriteLine( "" + sl.createLinearSyntax() );
         }
 
-        public static void test3 ( string input, Engine engine ) {
+        public static void test3 ( Engine engine ) {
+            string[] ss = {
+                "{ + 4 1 { * 3 11 } }",
+                "{ + 4 2 { * 3 3",
+                "{ 4 + 2 + ( 3 * 3 )",
+                "4 + 2 + ( 3 * 3 )",
+                "4 + 2 + ( 3.1 * 3 )",
+                "foo",
+                "{ 4 + 2 + ( 3.1 * 3 ); 10.5; foo * 2", // note: 'foo' is declared in previous tests!
+                @"{
+                    i = 3;
+                    i++;
+                }",
+                @"{
+                    i = 3;
+                    i = 10;
+                    i++;
+                    i + 7;
+                }",
+                "testObj1 + 1",
+            };
+            testRun( ss, engine );
+        }
+
+        public static void testRun ( string[] inputs, Engine engine ) {
+            foreach( string s in inputs ) {
+                testRun( s, engine ); // completed
+            }
+        }
+
+        public static void testRun ( string input, Engine engine ) {
             var sl = new StringLexer( input, engine );
 
             LinearSyntax ls = sl.createLinearSyntax();
