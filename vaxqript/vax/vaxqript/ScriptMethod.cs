@@ -8,6 +8,8 @@ namespace vax.vaxqript {
         private HoldType holdType;
         private CodeBlock codeBlock;
 
+        // TODO add '=>' operator for quick wrapping of CodeBlock into a ScriptMethod
+
         public ScriptMethod ( HoldType holdType, CodeBlock codeBlock ) {
             this.holdType = holdType;
             this.codeBlock = codeBlock;

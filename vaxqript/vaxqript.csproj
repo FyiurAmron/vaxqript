@@ -66,6 +66,7 @@
     <Compile Include="vax\vaxqript\ScriptMethod.cs" />
     <Compile Include="vax\vaxqript\IHoldable.cs" />
     <Compile Include="vax\vaxqript\ValueList.cs" />
+    <Compile Include="vax\vaxqript\ObjectMethod.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

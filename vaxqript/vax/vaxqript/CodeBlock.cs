@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 
 namespace vax.vaxqript {
-    public class CodeBlock : IEvaluable {/*, IExecutable*/
+    public class CodeBlock : IEvaluable {
+        /*, IExecutable*/
         private List<IEvaluable> arguments = new List<IEvaluable>();
-        private IExecutable executable;
-
+        private Operator op;
+        private IExecutable idExec;
 
         public CodeBlock () {
         }
@@ -16,12 +17,12 @@ namespace vax.vaxqript {
             }
         }
 
-        public IExecutable getExecutable () {
-            return executable;
+        public Operator getOperator () {
+            return op;
         }
 
-        public void setExecutable ( IExecutable executable ) {
-            this.executable = executable;
+        public void setOperator ( Operator op ) {
+            this.op = op;
         }
 
         public List<IEvaluable> getArgumentList () {
@@ -29,6 +30,24 @@ namespace vax.vaxqript {
         }
 
         private void _add ( ISyntaxElement syntaxElement ) {
+            Operator seOp = syntaxElement as Operator;
+            if( seOp != null ) {
+                if( op == null ) {
+                    op = seOp;
+                } else if( !seOp.Equals( op ) ) {
+                    throw new InvalidOperationException( "operator '" + op
+                    + "' already present, '" + op + "' not compatible; explicit parentheses required" );
+                }
+            } else {
+                IEvaluable ieva = syntaxElement as IEvaluable;
+                if( ieva == null ) {
+                    throw new NotSupportedException( "unsupported syntax element type '" + syntaxElement.GetType() + "' (neither IEvaluable nor Operator)" );
+                }
+                arguments.Add( ieva );
+            }
+        }
+        /*
+        private void _add2 ( ISyntaxElement syntaxElement ) {
             IExecutable iexe = syntaxElement as IExecutable;
             IEvaluable ieva = syntaxElement as IEvaluable;
             if( iexe != null ) {
@@ -67,6 +86,7 @@ namespace vax.vaxqript {
             }
             arguments.Add( ieva );
         }
+*/
 
         private void _add ( object obj ) {
             ISyntaxElement ise = obj as ISyntaxElement;
@@ -96,100 +116,100 @@ namespace vax.vaxqript {
 
         public void clear () {
             arguments.Clear();
-            executable = null;
+            op = null;
+            idExec = null;
         }
 
-        protected dynamic[] prepareArguments ( Engine engine ) {
-            dynamic[] arr = new dynamic[arguments.Count];
-            if( arguments.Count == 0 )
+        protected dynamic[] prepareArguments ( Engine engine, int offset ) {
+            int argCount = arguments.Count, realArgCount = argCount - offset;
+            dynamic[] arr = new dynamic[realArgCount];
+            if( realArgCount == 0 )
                 return arr;
             
-            Operator op = executable as Operator;
             HoldType holdType;
             Associativity associativity; // used by Operatator class mostly
-            int max = arguments.Count;
 
             if( op != null ) {
                 holdType = op.HoldType;
                 associativity = op.Associativity;
             } else {
-                Identifier id = executable as Identifier;
-                if( id != null ) { // if it's already added here, it ought to be a MethodWrapper's Identifier
-                    IHoldable idih = (IHoldable) engine.getIdentifierValue( id ).Value;
-                    holdType = idih.getHoldType( engine );
-                    associativity = Associativity.LeftToRight; // shouldn't matter here anyway; if it's needed, implement it in MethodWrapper or interface it
-                } else {
-                    throw new InvalidOperationException( "unknown/unsupported IExecutable type '" + executable.GetType().Name + "'" );
-                    /*
-                                    holdType = HoldType.None;
-                    associativity = Associativity.LeftToRight;
-                    */
-                }
+                holdType = idExec.getHoldType( engine );
+                associativity = Associativity.LeftToRight; // shouldn't matter here anyway; if it's needed, implement it in MethodWrapper or interface it
             }
-            switch (holdType) {
-            case HoldType.First:
-                if( associativity == Associativity.LeftToRight ) {
-                    arr[0] = arguments[0];
-                    for( int i = 1; i < max; i++ ) {
-                        arr[i] = arguments[i].eval( engine );
-                    }
-                } else {
-                    max--;
-                    arr[0] = arguments[max];
-                    for( int i = 1, j = max - 1; j >= 0; i++, j-- ) {
+            int i = 0, j;
+            switch (associativity) {
+            case Associativity.LeftToRight:
+                j = offset;
+                switch (holdType) {
+                case HoldType.None:
+                    for(; i < realArgCount; i++, j++ ) {
                         arr[i] = arguments[j].eval( engine );
                     }
-                }
-                return arr;
-            case HoldType.AllButFirst:
-                if( associativity == Associativity.LeftToRight ) {
-                    arr[0] = arguments[0].eval( engine );
-                    for( int i = 1; i < max; i++ ) {
-                        arr[i] = arguments[i];
-                    }
-                } else {
-                    max--;
-                    arr[0] = arguments[max].eval( engine );
-                    for( int i = 1, j = max - 1; j >= 0; i++, j-- ) {
-                        arr[i] = arguments[j];
-                    }
-                }
-                return arr;
-            case HoldType.All:
-                if( associativity == Associativity.LeftToRight ) {
-                    for( int i = 0; i < max; i++ ) {
-                        arr[i] = arguments[i];
-                    }
-                } else {
-                    for( int i = 0, j = max - 1; i < max; i++, j-- ) {
-                        arr[i] = arguments[j];
-                    }
-                }
-                return arr;
-            case HoldType.None:
-                if( associativity == Associativity.LeftToRight ) {
-                    for( int i = 0; i < max; i++ ) {
-                        arr[i] = arguments[i].eval( engine );
-                    }
-                } else {
-                    for( int i = 0, j = max - 1; i < max; i++, j-- ) {
+                    break;
+                case HoldType.First:
+                    arr[0] = arguments[j];
+                    for( i++, j++; i < realArgCount; i++, j++ ) {
                         arr[i] = arguments[j].eval( engine );
                     }
+                    break;
+                case HoldType.AllButFirst:
+                    arr[0] = arguments[j].eval( engine );
+                    for( i++, j++; i < realArgCount; i++, j++ ) {
+                        arr[i] = arguments[j];
+                    }
+                    break;
+                case HoldType.All:
+                    for(; i < realArgCount; i++, j++ ) {
+                        arr[i] = arguments[j];
+                    }
+                    break;
+                default:
+                    throw new InvalidOperationException( "uknown HoldType '" + holdType + "'" );
                 }
-                return arr;
+                break;
+            case Associativity.RightToLeft:
+                j = argCount - 1;
+                switch (holdType) {
+                case HoldType.All:
+                    for( ; i < realArgCount; i++, j-- ) {
+                        arr[i] = arguments[j];
+                    }
+                    break;
+                case HoldType.AllButFirst:
+                    arr[0] = arguments[j].eval( engine );
+                    for( i++,j--; i < realArgCount; i++, j-- ) {
+                        arr[i] = arguments[j];
+                    }
+                    break;
+                case HoldType.First:
+                    arr[0] = arguments[j];
+                    for( i++,j--; i < realArgCount; i++, j-- ) {
+                        arr[i] = arguments[j].eval( engine );
+                    }
+                    break;
+                case HoldType.None:
+                    for( ; i < realArgCount; i++, j-- ) {
+                        arr[i] = arguments[j].eval( engine );
+                    }
+                    break;
+                default:
+                    throw new InvalidOperationException( "uknown HoldType '" + holdType + "'" );
+                }
+                break;
             default:
-                throw new InvalidOperationException( "unknown HoldType '" + op.HoldType + "'" );
+                throw new InvalidOperationException( "uknown Associativity '" + associativity + "'" );
             }
+            return arr;
         }
 
         public bool isEmpty () {
-            return executable == null && arguments.Count == 0;
+            return op == null && arguments.Count == 0;
         }
 
         public override string ToString () {
-            return " { " + executable + " " + string.Join( " ", arguments ) + " } ";
+            return " { " + ( ( op != null ) ? ( op + " " ) : "" ) + string.Join( " ", arguments ) + " } ";
         }
-        /*
+
         public HoldType getHoldType ( Engine engine ) {
             return HoldType.None; // default behaviour - use ScriptMethod wrapper to change it
         }
@@ -198,30 +218,35 @@ namespace vax.vaxqript {
             engine.setIdentifierValue( "$args", arguments ); // TEMP, use proper local vars later on
             return eval( engine );
         }
-*/
+
+        public object _eval ( Engine engine ) {
+            int count = arguments.Count;
+            if( op != null ) { // doing this before count check allows nullary (const) operators
+                return op.exec( engine, prepareArguments( engine, 0 ) );
+            }
+            if( count == 0 ) {
+                return null;
+            } 
+            Identifier id = arguments[0] as Identifier;
+            if( id != null ) {
+                ValueWrapper vw = engine.getIdentifierValue( id );
+                if( vw != null ) {
+                    idExec = vw.Value as IExecutable;
+                    if( idExec != null ) {
+                        return idExec.exec( engine, prepareArguments( engine, 1 ) );
+                    }
+                }
+            }
+            ValueList retList = new ValueList( count );
+            for( int i = 0; i < count; i++ ) {
+                retList.Add( arguments[i].eval( engine ) );
+            }
+            return retList;
+        }
+
         public object eval ( Engine engine ) {
             engine.increaseStackCount();
-            object ret;
-            if( executable != null ) {
-                ret = executable.exec( engine, prepareArguments( engine ) );
-            } else {
-                int count = arguments.Count, i;
-                if( count == 0 ) {
-                    return null;
-                }
-                ValueList retList = new ValueList( count );
-                //count--;
-                for( i = 0; i < count; i++ ) {
-                    retList.Add( arguments[i].eval( engine ) );
-                }
-                /*
-                CodeBlock cb = arguments[i] as CodeBlock; // skip the terminating semicolon/empty block
-                if( cb == null || !cb.isEmpty() ) {
-                    retList.Add( arguments[i].eval( engine ) );
-                }
-                */
-                ret = retList;
-            }
+            object ret = _eval( engine );
             engine.decreaseStackCount();
             return ret;
         }

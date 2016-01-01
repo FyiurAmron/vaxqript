@@ -18,7 +18,9 @@ namespace vax.vaxqript {
             BLOCK_CLOSED_CHAR_1 = '}',
             BLOCK_CLOSED_CHAR_2 = ')',
             BLOCK_INLINE_CHAR = ';',
-            SEPARATOR_CHAR = ',';
+            SEPARATOR_CHAR = ',',
+
+            NUMERIC_LITERAL_SEPARATOR = '_';
 
         protected readonly static char[] //
             known_newline = { '\n', '\r' },
@@ -161,6 +163,9 @@ namespace vax.vaxqript {
         protected string inputString;
         protected Engine engine;
         protected int pos, endPos, maxPos;
+
+        bool numericLiteralSeparatorWorkaround = true;
+        // for c# < 6.0
 
         public StringLexer ( string inputString, Engine engine ) {
             this.inputString = inputString;
@@ -388,7 +393,7 @@ namespace vax.vaxqript {
 
                     for( ; endPos != maxPos; endPos++ ) {
                         char c = inputString[endPos]; // TODO distinguish the special case of -/+ prefixing a number here
-                        if( is_numeric[c] ) {
+                        if( is_numeric[c] || c == NUMERIC_LITERAL_SEPARATOR ) {
                             continue;
                         }
                         if( c == '.' ) {
@@ -409,15 +414,29 @@ namespace vax.vaxqript {
                     pos = endPos;
 
                     string input = inputString.Substring( beginPos, endPos - beginPos );
+                    if( numericLiteralSeparatorWorkaround ) { // needed for c# < 6.0
+                        input = input.Replace( "_", "" );
+                    }
 
                     int i;
+                    long l;
                     float f;
-                    if( !hasExp && !hasDot && Int32.TryParse( input, out i ) ) { // todo support more numeric types later on
-                        return new ValueWrapper( i );    
-                    } else if( Single.TryParse( input, out f ) ) {
+                    double d;
+                    if( !hasExp && !hasDot ) {
+                        if( int.TryParse( input, out i ) ) { // todo support more numeric types later on
+                            return new ValueWrapper( i );    
+                        }
+                        if( long.TryParse( input, out l ) ) { // todo support more numeric types later on
+                            return new ValueWrapper( l );
+                        }
+                    }
+                    if( float.TryParse( input, out f ) ) {
                         return new ValueWrapper( f );
-                    } else
-                        return new UnknownElement( input );
+                    }
+                    if( double.TryParse( input, out d ) ) {
+                        return new ValueWrapper( d );
+                    }
+                    return new UnknownElement( input );
                     
                 } else if( is_identifier[firstChar] ) {
                     if( !findIdentifierEnd() ) {

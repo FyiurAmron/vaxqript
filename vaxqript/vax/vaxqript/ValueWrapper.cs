@@ -3,7 +3,7 @@ using System.Collections;
 using System.Text;
 
 namespace vax.vaxqript {
-    public class ValueWrapper : IWrapper  {
+    public class ValueWrapper : IWrapper {
         public object Value { get; set; }
 
         public object eval ( Engine engine ) {
@@ -20,6 +20,8 @@ namespace vax.vaxqript {
         // TODO get based on engine?
 
         public string valueToString () {
+            if( Value == null )
+                return "null";
             string s = Value as String;
             if( s != null ) {
                 StringBuilder sb = new StringBuilder();
@@ -35,7 +37,9 @@ namespace vax.vaxqript {
         }
 
         public override string ToString () {
-            return "/* " + Value.GetType().Name + " */ " + valueToString();
+            return ( Value != null )
+                 ? "/* " + Value.GetType().Name + " */ " + valueToString()
+                    : "/* null */ null";
         }
     }
 }

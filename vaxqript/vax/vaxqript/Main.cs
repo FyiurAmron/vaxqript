@@ -4,16 +4,17 @@ using System.Collections.Generic;
 
 namespace vax.vaxqript {
     public class MainClass {
-        private static string toString ( object o ) {
-            return ( o == null ) ? "null" : o.ToString();
-        }
-
         private static string exceptionToString ( Exception ex ) {
             return ">>> EXCEPTION: " + ex.GetType() + ":\n>>> " + ex.Message;
         }
 
+        public static string testMethod() {
+            return "test complete!";
+        }
+
         public static void Main ( string[] args ) {
             Engine engine = new Engine();
+
             Console.WriteLine( "=== TEST 1a ===" );
             test1a( engine ); // completed
             Console.WriteLine( "=== TEST 1b ===" );
@@ -31,7 +32,10 @@ namespace vax.vaxqript {
                 "println(\"!!! text output\"+\"\t\"+ 7)",
                 "if ((2+2)==4) {42}",
                 "i=(-10);while(i<10){i++;}; i;",
-                "for(i=1;i<10;i++) { println(i); }"
+                "for(i=1;i<10;i++) { println(i); }",
+                //"@($engine.\"globalVarsToString\")",
+                "@((?\"vax.vaxqript.MainClass\").\"testMethod\")",
+                //"vax.vaxqript.MainClass.test1a($engine)"
             };
 
             testRun( inputs, engine );
@@ -39,7 +43,7 @@ namespace vax.vaxqript {
             Console.WriteLine( "=== READ-EVAL-PRINT LOOP ===" );
             for( string line = Console.ReadLine(); line != null && line.Length != 0; line = Console.ReadLine() ) {
                 try {
-                    Console.WriteLine( ">>> " + toString( engine.eval( line ) ) );
+                    Console.WriteLine( ">>> " + MiscUtils.toString( engine.eval( line ) ) );
                 } catch (Exception ex) {
                     Console.WriteLine( exceptionToString( ex ) );
                 }
@@ -49,7 +53,7 @@ namespace vax.vaxqript {
         public static object operatorTest ( Engine engine, String opString, params dynamic[] arguments ) {
             try {
                 object ret = engine.debugApplyStringOperator( opString, arguments );
-                Console.WriteLine( toString( ret ) );
+                Console.WriteLine( MiscUtils.toString( ret ) );
                 return ret;
             } catch (Exception ex) {
                 Console.WriteLine( exceptionToString( ex ) );
@@ -60,7 +64,7 @@ namespace vax.vaxqript {
         public static object operatorTest ( Engine engine, Func<Engine,object> action ) {
             try {
                 object ret = action( engine );
-                Console.WriteLine( toString( ret ) );
+                Console.WriteLine( MiscUtils.toString( ret ) );
                 return ret;
             } catch (Exception ex) {
                 Console.WriteLine( exceptionToString(ex) );
@@ -135,18 +139,18 @@ namespace vax.vaxqript {
             CodeBlock cb1 = new CodeBlock(), cb2 = new CodeBlock();
             cb1.addAll( engine.operatorValueOf( "+" ), new ValueWrapper( 42 ), new ValueWrapper( 2 ) );
             cb2.addAll( engine.operatorValueOf( "-" ), cb1, 46, new AddTestClass() );
-            Console.WriteLine( toString( engine.eval( cb2 ) ) );
+            Console.WriteLine( MiscUtils.toString( engine.eval( cb2 ) ) );
             cb2.clear();
             cb2.addAll( engine.operatorValueOf( "-" ), cb1, 46 );
-            Console.WriteLine( toString( engine.eval( cb2 ) ) );
+            Console.WriteLine( MiscUtils.toString( engine.eval( cb2 ) ) );
             cb2.clear();
             Operator smileOp = new Operator( ":-)", null, null );
             cb2.addAll( smileOp, cb1, new AddTestClass() );
-            Console.WriteLine( toString( engine.eval( cb2 ) ) );
+            Console.WriteLine( MiscUtils.toString( engine.eval( cb2 ) ) );
             cb2.clear();
             engine.addOperator( smileOp ); // add to cache
             cb2.addAll( engine.operatorValueOf( ":-)" ), new AddTestClass(), cb1 );
-            Console.WriteLine( toString( engine.eval( cb2 ) ) );
+            Console.WriteLine( MiscUtils.toString( engine.eval( cb2 ) ) );
         }
 
         public static void test2a ( Engine engine ) {
@@ -201,7 +205,7 @@ namespace vax.vaxqript {
             //Console.WriteLine( ls.debugToString() );
             CodeBlock cn = ls.buildParseTree();
             //Console.WriteLine( cn );
-            Console.WriteLine( toString( engine.eval( cn ) ) );
+            Console.WriteLine( MiscUtils.toString( engine.eval( cn ) ) );
         }
     }
 

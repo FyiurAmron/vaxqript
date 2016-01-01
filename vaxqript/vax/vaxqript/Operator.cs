@@ -32,7 +32,7 @@ namespace vax.vaxqript {
         public HoldType getHoldType ( Engine engine ) {
             return HoldType;
         }
-
+        // TODO: null checks for lambdas!!!
         private object _exec ( Engine engine, params dynamic[] arguments ) {
             switch (arguments.Length) {
             case 0:

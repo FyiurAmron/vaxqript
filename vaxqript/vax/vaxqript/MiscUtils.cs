@@ -4,11 +4,28 @@ using System.Text;
 
 namespace vax.vaxqript {
     public static class MiscUtils {
-        public static readonly Type[] NO_ARGUMENTS = new Type[0];
+        //public static readonly object[] NO_ARGUMENTS = new object[0];
+        public static readonly Type[] NO_ARGUMENTS_TYPE = new Type[0];
         /*
         public MiscUtils () {
         }
         */
+
+        public static Type getTypeFor ( object n ) {
+            string s = n as string;
+            if( s != null ) { // get type from name
+                return Type.GetType( s );
+            }
+            ValueWrapper vw = n as ValueWrapper;
+            if( vw != null ) {
+                n = vw.Value; // note: not recursive!
+            }
+            return n.GetType();
+        }
+
+        public static string toString ( object o ) {
+            return ( o == null ) ? "null" : o.ToString();
+        }
         // needed since core lib only supports the generic IEnumerable or array string.Join currently
         public static string join ( string separator, IEnumerable iEnumerable ) {
             return join( separator, iEnumerable, "null" );
@@ -53,6 +70,25 @@ namespace vax.vaxqript {
                 i++;
             }
             return ret;
+        }
+
+        public static bool IsNumericType ( Type t ) {   
+            switch (Type.GetTypeCode( t )) {
+            case TypeCode.Byte:
+            case TypeCode.SByte:
+            case TypeCode.UInt16:
+            case TypeCode.UInt32:
+            case TypeCode.UInt64:
+            case TypeCode.Int16:
+            case TypeCode.Int32:
+            case TypeCode.Int64:
+            case TypeCode.Decimal:
+            case TypeCode.Double:
+            case TypeCode.Single:
+                return true;
+            default:
+                return false;
+            }
         }
     }
 }

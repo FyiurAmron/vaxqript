@@ -11,6 +11,7 @@ namespace vax.vaxqript {
         private Dictionary<Identifier, dynamic> globalVarMap = new Dictionary<Identifier,dynamic>();
         private Dictionary<string,Operator> operatorMap = new Dictionary<string,Operator>();
         private Dictionary<string,Identifier> identifierMap = new Dictionary<string,Identifier>();
+        private HashSet<Identifier> constantIdentifierSet = new HashSet<Identifier>();
 
         public UndefinedVariableBehaviour UndefinedVariableBehaviour { get; set; }
 
@@ -22,7 +23,8 @@ namespace vax.vaxqript {
         public int StackLimit { get; set; }
 
         public Engine () {
-            UndefinedVariableBehaviour = UndefinedVariableBehaviour.ReturnRawNull;
+            //UndefinedVariableBehaviour = UndefinedVariableBehaviour.ReturnRawNull;
+            UndefinedVariableBehaviour = UndefinedVariableBehaviour.ThrowException;
             StackLimit = 4096;
             createDefaultVariables();
             createDefaultOperators();
@@ -53,6 +55,18 @@ namespace vax.vaxqript {
             default:
                 throw new InvalidOperationException( "unknown/unsupported UndefinedVariableBehaviour '" + UndefinedVariableBehaviour + "'" );
             }
+        }
+
+        public void removeIdentifier( string identifierName ) {
+            Identifier ret;
+            if( identifierMap.TryGetValue( identifierName, out ret ) ) {
+                removeIdentifier( ret );
+            }
+        }
+
+        public void removeIdentifier( Identifier identifier ) {
+            identifierMap.Remove( identifier.Name );
+            globalVarMap.Remove( identifier );
         }
 
         public Identifier getIdentifier ( string identifierName ) {
@@ -95,40 +109,77 @@ namespace vax.vaxqript {
             return ret;
         }
 
+        public Identifier setIdentifierValueConstant ( string identifierName, object value ) {
+            Identifier id = setIdentifierValue( identifierName, value );
+            constantIdentifierSet.Add( id );
+            return id;
+        }
+
         public T setIdentifierValue<T> ( Identifier identifier, T value ) {
             identifierMap[identifier.Name] = identifier;
             _setIdentifierValue( identifier, value );
             return value;
         }
-        /*
-        public void setIdentifierValue ( Identifier identifier, object value ) {
-            identifierMap[identifier.Name] = identifier;
-            _setIdentifierValue( identifier, value );
-        }*/
+
+        public T setIdentifierValueConstant<T> ( Identifier identifier, T value ) {
+            T ret = setIdentifierValue( identifier, value );
+            constantIdentifierSet.Add( identifier );
+            return ret;
+        }
 
         private T _setIdentifierValue<T> ( Identifier identifier, T value ) {
+            if( constantIdentifierSet.Contains( identifier ) ) {
+                throw new InvalidOperationException( "identifier '" + identifier
+                    + "' is declared as constant; remove it first before assigning other value to it" );
+            }
             globalVarMap[identifier] = value; // TODO support access modifiers & levels etc
             return value;
         }
 
+        public string globalVarsToString() {
+            return "ENGINE VARS:\n" + MiscUtils.join( "\n", globalVarMap );
+        }
+
         protected void createDefaultVariables () {
             if( UndefinedVariableBehaviour == UndefinedVariableBehaviour.ReturnUndefined ) {
-                setIdentifierValue( undefinedIdentifier, Undefined.INSTANCE );
+                setIdentifierValueConstant( undefinedIdentifier, Undefined.INSTANCE );
             }
 
-            // value-type (literal) default vars
-            setIdentifierValue( "null", null );
-            setIdentifierValue( "true", true );
-            setIdentifierValue( "false", false );
-            setIdentifierValue( "Infinity", float.PositiveInfinity );
-            setIdentifierValue( "NaN", float.NaN );
+            // note: below code fails to autoformat properly in Xamarin Studio IDE
+            Dictionary<string,object> defaultVarsMap = new Dictionary<string,object> {
+                //// common identifiers
+                // value-type (literal) default vars
+                { "null",null },
+                { "true", true },
+                { "false", false },
+                { "Infinity", float.PositiveInfinity },
+                { "NaN", float.NaN },
 
-            setIdentifierValue( "$engine", this );
-            setIdentifierValue( "$ret", retVal );
+                //// common type identifiers (note: no unsigned types/signed byte since they are quite uncommon/unportable [Java])
+                { "bool", typeof(bool) },
+                { "byte", typeof(byte) },
+                { "short", typeof(short) },
+                { "int", typeof(int) },
+                { "long", typeof(long) },
+                { "float", typeof(float) },
+                { "double", typeof(double) },
 
-            // method-type (delegate) default vars
-            //// basic syntax
-            setIdentifierValue( "new", new MethodWrapper( (objs ) => {
+                { "char", typeof(char) },
+                { "object", typeof(object) },
+                { "string", typeof(string) },
+
+                //// script identifiers
+                { "$engine", this },
+                { "$ret", retVal },
+                 //$args[]
+                        //// basic syntax
+                        // method-type (delegate) default vars
+
+                    { "vars", new MethodWrapper( (objs)=>globalVarsToString() )  }, // DEBUG ONLY!
+
+                {           "new", new MethodWrapper( (objs ) => {
+                    if ( objs.Length == 0 )
+                        throw new InvalidOperationException("'new' command missing required argument (type)");
                 ValueList args = ( objs.Length > 1 ) ? objs[1] as ValueList : null; // only permissible objs[1] type now
 
                 Type t = objs[0] as Type;
@@ -136,7 +187,7 @@ namespace vax.vaxqript {
                     if( t.IsPrimitive ) {
                         t = typeof(Nullable<>).MakeGenericType( t );
                     }
-                    Type[] types = ( args != null ) ? MiscUtils.toTypes( args ) : MiscUtils.NO_ARGUMENTS;
+                    Type[] types = ( args != null ) ? MiscUtils.toTypes( args ) : MiscUtils.NO_ARGUMENTS_TYPE;
                     ConstructorInfo ci = t.GetConstructor( types );
                     if( ci == null ) {
                         throw new InvalidOperationException( "constructor " + t + "(" + MiscUtils.join( ",", types ) + ") not found" );
@@ -145,20 +196,30 @@ namespace vax.vaxqript {
                 }
                 return null;
                 //return ( ( objs[0] as bool? ) ?? false ) ? objs[1] : null;
-            } ) );
-            setIdentifierValue( "if", new MethodWrapper( (objs ) => { // TODO implement 'else'
+                                } ) },
+            { "if", new MethodWrapper( (objs ) => { // TODO implement 'else'
+                    if ( objs.Length < 2 )
+                        throw new InvalidOperationException("'if' conditional missing required blocks (2 needed, "
+                            +objs.Length+" found)");
                 return ( ( objs[0] as bool? ) ?? false ) ? objs[1] : null;
-            } ) );
-            setIdentifierValue( "while", new MethodWrapper( (objs ) => { // TODO implement 'else'
-                IEvaluable //
+                                    } ) },
+            { "while", new MethodWrapper( (objs ) => {
+                    if ( objs.Length < 2 )
+                        throw new InvalidOperationException("'while' loop missing required blocks (2 needed, "
+                            +objs.Length+" found)");
+                    
+                    IEvaluable //
                 condition = objs[0] as IEvaluable,
                 body = objs[1] as IEvaluable;
                 while( ( condition.eval( this ) as bool? ) ?? false ) {
                     body.eval( this ); // return is ignored here
                 }
                 return null; // TODO implement 'return' as loop breaker here
-            }, HoldType.All ) );
-            setIdentifierValue( "for", new MethodWrapper( (objs ) => { // TODO implement 'else'
+                                        }, HoldType.All ) },
+            { "for", new MethodWrapper( (objs ) => { // TODO implement 'else'
+                    if ( objs.Length < 4 )
+                        throw new InvalidOperationException("'for' loop missing required blocks (4 needed, "
+                            +objs.Length+" found)");
                 IEvaluable //
                 init = objs[0] as IEvaluable,
                 condition = objs[1] as IEvaluable,
@@ -168,25 +229,29 @@ namespace vax.vaxqript {
                     body.eval( this );
                 }
                 return null; // TODO implement 'return' as loop breaker here
-            }, HoldType.All ) );
+                                            }, HoldType.All ) },
 
             //// utility methods
-            setIdentifierValue( "print", new MethodWrapper( (objs ) => {
+            { "print", new MethodWrapper( (objs ) => {
                 foreach( object o in objs ) {
                     Console.Write( ( o == null ) ? "null" : o );
                 }
                 return null;
-            } ) );
-            setIdentifierValue( "println", new MethodWrapper( (objs ) => {
+                                                } ) },
+            { "println", new MethodWrapper( (objs ) => {
                 foreach( object o in objs ) {
                     Console.WriteLine( ( o == null ) ? "null" : o );
                 }
                 return null;
-            } ) );
-
+                                                } ) },
+                                                    };
             // note: by default, with 'func(arg0,arg1...)' syntax, obj[0] contains *all* arguments passed, wrapped as a CodeBlock;
             // to pass the arguments *directly*, use 'func arg0 arg1'
             // - this is *strictly* required for composite (multi-block) methods (like 'for', 'while' etc) to work at all!
+
+                                                    foreach( KeyValuePair<string, object> entry in defaultVarsMap ) {
+                setIdentifierValueConstant(entry.Key, entry.Value);
+                                                    }
         }
 
         private Func<dynamic,dynamic> lambda2 ( Func<dynamic,dynamic> func ) {
@@ -221,17 +286,23 @@ namespace vax.vaxqript {
 
         protected void createDefaultOperators () {
             Operator[] defaultOperators = {
-                new Operator( ".", (n ) => { // TODO implement
+                // internal script engine operators
+                new Operator( ".", (n ) => { // method operator
                     return null;
                 }, (n, m ) => {
-                    return null;
+                    Type t = n as Type;
+                    if ( t == null ) {
+                        t = n.GetType();
+                    } else { // n is a Type, so usually it's a static method; TODO implement calling Type# methods
+                        n = null;
+                    }
+                    return new ObjectMethod(n, t.GetMethod( m ) );
                 } ),
-                new Operator( "+",
-                    (n ) => +n,
-                    (n, m ) => n + m ),
-                new Operator( "-",
-                    (n ) => -n,
-                    (n, m ) => n - m ),
+                new Operator( "@", (n ) => { // method operator
+                    return ((ObjectMethod)n).invoke( null ); // 'null' instead of 'object[0]' for some obscure, ericlipperty reason
+                }, (n, m ) => {
+                    return ((ObjectMethod)n).invoke( m );
+                } ),
                 new Operator( "'", (n ) => { // Identifier<->string operator; coincidentally doubles as "alternative string quotes"
                     ValueWrapper vw = n as ValueWrapper;
                     if( vw != null ) {
@@ -255,13 +326,28 @@ namespace vax.vaxqript {
                     Identifier id = n as Identifier;
                     return ( id != null ) ? getIdentifierValue( id ) : Wrapper.wrap( n );
                 }, null, HoldType.All ),
-                new Operator( "?", (n ) => { // typeof operator
-                    ValueWrapper vw = n as ValueWrapper;
-                    if( vw != null ) {
-                        n = vw.Value; // note: not recursive!
+                new Operator( "?",
+                    (n ) => MiscUtils.getTypeFor(n),
+                    null
+                    /*
+                    (n,m) => { // note: maybe it's not the best idea, but I leave it here for reference & future generations
+                        IList list = n as IList;
+                        if ( list == null ) {
+                            list = new ValueList();
+                            list.Add( MiscUtils.getTypeFor(n));
+                        }
+                        list.Add( MiscUtils.getTypeFor(m));
+                        return list;
                     }
-                    return n.GetType();
-                }, null, HoldType.None ),
+                */
+                ), // 'typeof' operator
+                //regular unary/nary operators
+                new Operator( "+",
+                    (n ) => +n,
+                    (n, m ) => n + m ),
+                new Operator( "-",
+                    (n ) => -n,
+                    (n, m ) => n - m ),
                 new Operator( "!", (n ) => !n, null ),
                 new Operator( "~", (n ) => ~n, null ),
                 createAssignmentOperator( "++", (n ) => ++n, null ),
@@ -269,13 +355,13 @@ namespace vax.vaxqript {
                 new Operator( "*", null, (n, m ) => n * m ),
                 new Operator( "/", null, (n, m ) => n / m ),
                 new Operator( "%", null, (n, m ) => n % m ),
-                new Operator( "|", null, (n, m ) => n | m ),
-                new Operator( "||", null, (n, m ) => n || m ),
-                new Operator( "&", null, (n, m ) => n & m ),
-                new Operator( "&&", null, (n, m ) => n && m ),
-                new Operator( "^", null, (n, m ) => n ^ m ),
                 new Operator( "<<", null, (n, m ) => n << m ),
                 new Operator( ">>", null, (n, m ) => n >> m ),
+                new Operator( "^", null, (n, m ) => n ^ m ),
+                new Operator( "|", null, (n, m ) => n | m ),
+                new Operator( "&", null, (n, m ) => n & m ),
+                new Operator( "||", null, (n, m ) => n || m ),
+                new Operator( "&&", null, (n, m ) => n && m ),
                 new Operator( "==", null, (n, m ) => n == m ),
                 new Operator( "!=", null, (n, m ) => n != m ),
                 new Operator( ">", null, (n, m ) => n > m ),
@@ -348,11 +434,11 @@ namespace vax.vaxqript {
                 createAssignmentOperator( "*=", null, (n, m ) => n * m ),
                 createAssignmentOperator( "/=", null, (n, m ) => n / m ),
                 createAssignmentOperator( "%=", null, (n, m ) => n % m ),
-                createAssignmentOperator( "&=", null, (n, m ) => n & m ),
-                createAssignmentOperator( "|=", null, (n, m ) => n | m ),
-                createAssignmentOperator( "^=", null, (n, m ) => n ^ m ),
                 createAssignmentOperator( "<<=", null, (n, m ) => n << m ),
                 createAssignmentOperator( ">>=", null, (n, m ) => n >> m ),
+                createAssignmentOperator( "^=", null, (n, m ) => n ^ m ),
+                createAssignmentOperator( "&=", null, (n, m ) => n & m ),
+                createAssignmentOperator( "|=", null, (n, m ) => n | m ),
             };
             foreach( Operator op in defaultOperators ) {
                 addOperator( op );
@@ -502,26 +588,6 @@ namespace vax.vaxqript {
             //Console.WriteLine( string.Join<ISyntaxElement>( ",", ises ) ); // in case of debug
             return new CodeBlock( ises ).eval( this );
         }
-
-        public static bool IsNumericType ( object o ) {   
-            switch (Type.GetTypeCode( o.GetType() )) {
-            case TypeCode.Byte:
-            case TypeCode.SByte:
-            case TypeCode.UInt16:
-            case TypeCode.UInt32:
-            case TypeCode.UInt64:
-            case TypeCode.Int16:
-            case TypeCode.Int32:
-            case TypeCode.Int64:
-            case TypeCode.Decimal:
-            case TypeCode.Double:
-            case TypeCode.Single:
-                return true;
-            default:
-                return false;
-            }
-        }
-
     }
 }
 

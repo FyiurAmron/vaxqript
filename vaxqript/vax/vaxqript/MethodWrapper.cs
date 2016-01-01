@@ -1,7 +1,7 @@
 ﻿using System;
 
 namespace vax.vaxqript {
-    public class MethodWrapper : IHoldable {
+    public class MethodWrapper : IExecutable {
         private Func<object[], object> func;
 
         public HoldType HoldType { get; private set; }
@@ -16,6 +16,10 @@ namespace vax.vaxqript {
 
         public HoldType getHoldType ( Engine engine ) {
             return HoldType;
+        }
+
+        public object exec ( Engine engine, params object[] arguments ) {
+            return invokeWith( arguments );
         }
 
         public object invokeWith ( params object[] arguments ) {
