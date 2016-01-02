@@ -8,6 +8,8 @@ namespace vax.vaxqript {
 
         public Associativity Associativity{ get; private set; }
 
+        public Func<dynamic> NullaryLambda { get; private set; }
+
         public Func<dynamic, dynamic> UnaryLambda { get; private set; }
 
         public Func<dynamic, dynamic, dynamic> NaryLambda { get; private set; }
@@ -21,9 +23,14 @@ namespace vax.vaxqript {
         }
 
         public Operator ( string operatorString, Func<dynamic, dynamic> unaryLambda, Func<dynamic, dynamic, dynamic> naryLambda, HoldType holdType,
-                          Associativity associativity ) {
+            Associativity associativity ) : this( operatorString, null, unaryLambda, naryLambda, holdType, associativity ){
+        }
+
+        public Operator ( string operatorString, Func<dynamic> nullaryLambda, Func<dynamic, dynamic> unaryLambda, Func<dynamic, dynamic, dynamic> naryLambda,
+                          HoldType holdType, Associativity associativity ) {
             OperatorString = operatorString;
             HoldType = holdType;
+            NullaryLambda = nullaryLambda;
             UnaryLambda = unaryLambda;
             NaryLambda = naryLambda;
             Associativity = associativity;
@@ -52,7 +59,9 @@ namespace vax.vaxqript {
         }
 
         public dynamic applyNullary () {
-            throw new NotSupportedException( "not supported nullary '" + this + "'" );
+            if( NullaryLambda == null )
+                throw new InvalidOperationException( "operator '" + this + "' not valid as nullary" );
+            return NullaryLambda();
         }
 
         public dynamic applyUnary ( dynamic argument ) {
@@ -62,6 +71,8 @@ namespace vax.vaxqript {
                 if( ret != null )
                     return ret.Value;
             }
+            if( UnaryLambda == null )
+                throw new InvalidOperationException( "operator '" + this + "' not valid as unary" );
             return UnaryLambda( argument );
         }
 
@@ -85,6 +96,8 @@ namespace vax.vaxqript {
                         continue;
                     }
                 }
+                if( NaryLambda == null )
+                    throw new InvalidOperationException( "operator '" + this + "' not valid as n-ary" );
                 result = NaryLambda( result, arguments[i] );
             }
             return result;

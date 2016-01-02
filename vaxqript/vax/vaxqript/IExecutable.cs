@@ -7,6 +7,8 @@ namespace vax.vaxqript {
     Note that elements that have a fixed set of arguments (e.g. <code>CodeBlock</code>) must implement <code>IEvaluable</code> instead.
     */
     public interface IExecutable : ISyntaxElement, IHoldable {
+        // TODO make arguments a IList<dynamic> object, but use a wrapped array implementation for compatibility?
+        // sometimes ValueList should be passed as arguments[]...
         object exec ( Engine engine, params dynamic[] arguments );
     }
 }

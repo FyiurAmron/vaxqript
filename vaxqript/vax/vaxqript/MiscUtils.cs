@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Text;
+using System.Reflection;
 
 namespace vax.vaxqript {
     public static class MiscUtils {
@@ -26,6 +27,11 @@ namespace vax.vaxqript {
         public static string toString ( object o ) {
             return ( o == null ) ? "null" : o.ToString();
         }
+
+        public static string toDebugString ( object o ) {
+            return "'" + o + "'" + ( ( o == null ) ? "" : " (of type " + o.GetType() + ")" );
+        }
+
         // needed since core lib only supports the generic IEnumerable or array string.Join currently
         public static string join ( string separator, IEnumerable iEnumerable ) {
             return join( separator, iEnumerable, "null" );
@@ -53,6 +59,8 @@ namespace vax.vaxqript {
         }
 
         public static Type[] toTypes ( params object[] objs ) {
+            if( objs == null )
+                return NO_ARGUMENTS_TYPE;
             int size = objs.Length;
             Type[] ret = new Type[size];
             for( int i = 0; i < size; i++ ) {
@@ -62,6 +70,8 @@ namespace vax.vaxqript {
         }
 
         public static Type[] toTypes ( IList objs ) {
+            if( objs == null )
+                return NO_ARGUMENTS_TYPE;
             int size = objs.Count;
             Type[] ret = new Type[size];
             int i = 0;
@@ -89,6 +99,26 @@ namespace vax.vaxqript {
             default:
                 return false;
             }
+        }
+
+        public static object createNew( Type type, Type[] types, object[] args ) {
+            // TODO: test if this handles structs well/at all
+            if( type.IsPrimitive ) {
+                type = typeof(Nullable<>).MakeGenericType( type );
+            }
+            ConstructorInfo ci = type.GetConstructor( types );
+            if( ci == null ) {
+                throw new InvalidOperationException( "constructor " + type + "(" + MiscUtils.join( ",", types ) + ") not found" );
+            }
+            return ci.Invoke( args );
+        }
+
+        public static object createNew( Type type, object[] args ) {
+            return createNew( type, ( args != null ) ? MiscUtils.toTypes( args ) : MiscUtils.NO_ARGUMENTS_TYPE, args );
+        }
+
+        public static object createNew( Type type, ValueList args ) {
+            return createNew( type, ( args != null ) ? MiscUtils.toTypes( args ) : MiscUtils.NO_ARGUMENTS_TYPE, args.ToArray() );
         }
     }
 }

@@ -30,6 +30,7 @@ namespace vax.vaxqript {
         }
 
         private void _add ( ISyntaxElement syntaxElement ) {
+            // maybe: add some prefix/infix/postfix sanitization? (note the '.' operator!)
             Operator seOp = syntaxElement as Operator;
             if( seOp != null ) {
                 if( op == null ) {
@@ -46,47 +47,6 @@ namespace vax.vaxqript {
                 arguments.Add( ieva );
             }
         }
-        /*
-        private void _add2 ( ISyntaxElement syntaxElement ) {
-            IExecutable iexe = syntaxElement as IExecutable;
-            IEvaluable ieva = syntaxElement as IEvaluable;
-            if( iexe != null ) {
-                Identifier id = syntaxElement as Identifier;
-                if( id != null ) {
-                    if( arguments.Count == 0 && executable == null ) {
-                        executable = id;
-                    } else {
-                        arguments.Add( id );
-                    }
-                    return;
-                }
-                // if we're here, syntaxElement is a non-Identifier IExecutable (usually an Operator)
-                if( executable == null ) {
-                    executable = iexe;
-                    return;
-                } else if( executable.Equals( iexe ) ) {
-                    return; // skip redundant ops etc
-                } else {
-                    id = executable as Identifier;
-                    if( id != null ) { // op is more important, demote the Identifier to regular argument
-                        arguments.Insert( 0, id ); // since it *had* to be the first added ISyntaxElement
-                        executable = iexe;
-                        return;
-                    }
-                }
-                if( ieva == null ) {
-                    throw new NotSupportedException( "non-evaluable executable element '" + executable
-                    + "' already present; '" + iexe + "' not compatible" );
-                }
-                arguments.Add( ieva );
-                return;
-            }
-            if( ieva == null ) {
-                throw new NotSupportedException( "unsupported syntax element type '" + syntaxElement.GetType() + "'" );
-            }
-            arguments.Add( ieva );
-        }
-*/
 
         private void _add ( object obj ) {
             ISyntaxElement ise = obj as ISyntaxElement;
@@ -237,8 +197,20 @@ namespace vax.vaxqript {
                     }
                 }
             }
-            ValueList retList = new ValueList( count );
-            for( int i = 0; i < count; i++ ) {
+            object o = arguments[0].eval( engine );
+            ValueList retList;
+
+            if( count > 1 ) {
+                CompositeIdentifier cid = o as CompositeIdentifier;
+                if( cid != null ) {
+                    idExec = cid;
+                    return idExec.exec( engine, prepareArguments( engine, 1 ) );
+                }
+            }
+
+            retList = new ValueList( count );
+            retList.Add( o );
+            for( int i = 1; i < count; i++ ) {
                 retList.Add( arguments[i].eval( engine ) );
             }
             return retList;

@@ -15,7 +15,8 @@ namespace vax.vaxqript {
 
         public UndefinedVariableBehaviour UndefinedVariableBehaviour { get; set; }
 
-        private Identifier undefinedIdentifier = new Identifier( "undefined" );
+        public Identifier UndefinedIdentifier { get; private set; } /* = new Identifier("new");*/
+        public Identifier NewIdentifier { get; private set; } /* = new Identifier("new");*/
         private ValueWrapper undefinedValue = new ValueWrapper( Undefined.INSTANCE );
 
         private int stackCount = 0;
@@ -23,6 +24,8 @@ namespace vax.vaxqript {
         public int StackLimit { get; set; }
 
         public Engine () {
+            UndefinedIdentifier = new Identifier( "undefined" );
+            NewIdentifier = new Identifier( "new" );
             //UndefinedVariableBehaviour = UndefinedVariableBehaviour.ReturnRawNull;
             UndefinedVariableBehaviour = UndefinedVariableBehaviour.ThrowException;
             StackLimit = 4096;
@@ -69,12 +72,16 @@ namespace vax.vaxqript {
             globalVarMap.Remove( identifier );
         }
 
+        public bool tryGetIdentifierValue( Identifier identifier, out object ret )  {
+            return globalVarMap.TryGetValue( identifier, out ret );
+        }
+
         public Identifier getIdentifier ( string identifierName ) {
             Identifier ret;
             if( identifierMap.TryGetValue( identifierName, out ret ) ) {
                 return ret;
             }
-            return valueNotFound( identifierName, undefinedIdentifier );
+            return valueNotFound( identifierName, UndefinedIdentifier );
         }
 
         public ValueWrapper getIdentifierValue ( string identifierName ) {
@@ -142,8 +149,25 @@ namespace vax.vaxqript {
 
         protected void createDefaultVariables () {
             if( UndefinedVariableBehaviour == UndefinedVariableBehaviour.ReturnUndefined ) {
-                setIdentifierValueConstant( undefinedIdentifier, Undefined.INSTANCE );
+                setIdentifierValueConstant( UndefinedIdentifier, Undefined.INSTANCE );
             }
+
+            setIdentifierValueConstant( NewIdentifier, new MethodWrapper( (objs ) => {
+                if ( objs.Length == 0 )
+                    throw new InvalidOperationException("'new' command missing required argument (type)");
+                object typeObj = objs[0];
+                ValueList args = ( objs.Length > 1 ) ? objs[1] as ValueList : null; // only permissible objs[1] type now
+                Type t = typeObj as Type;
+                if ( t == null ) {
+                    CompositeIdentifier compi = typeObj as CompositeIdentifier;
+                    if ( compi == null ) {
+                        throw new InvalidOperationException("object '"+MiscUtils.toDebugString(typeObj)
+                            +"' used as a Type");
+                    }
+                    t = compi.toType();
+                }
+                return MiscUtils.createNew(t, args);
+            } ));
 
             // note: below code fails to autoformat properly in Xamarin Studio IDE
             Dictionary<string,object> defaultVarsMap = new Dictionary<string,object> {
@@ -175,28 +199,7 @@ namespace vax.vaxqript {
                         //// basic syntax
                         // method-type (delegate) default vars
 
-                    { "vars", new MethodWrapper( (objs)=>globalVarsToString() )  }, // DEBUG ONLY!
-
-                {           "new", new MethodWrapper( (objs ) => {
-                    if ( objs.Length == 0 )
-                        throw new InvalidOperationException("'new' command missing required argument (type)");
-                ValueList args = ( objs.Length > 1 ) ? objs[1] as ValueList : null; // only permissible objs[1] type now
-
-                Type t = objs[0] as Type;
-                if( t != null ) { // TODO: test if this handles structs well/at all
-                    if( t.IsPrimitive ) {
-                        t = typeof(Nullable<>).MakeGenericType( t );
-                    }
-                    Type[] types = ( args != null ) ? MiscUtils.toTypes( args ) : MiscUtils.NO_ARGUMENTS_TYPE;
-                    ConstructorInfo ci = t.GetConstructor( types );
-                    if( ci == null ) {
-                        throw new InvalidOperationException( "constructor " + t + "(" + MiscUtils.join( ",", types ) + ") not found" );
-                    }
-                    return ci.Invoke( args.ToArray() );
-                }
-                return null;
-                //return ( ( objs[0] as bool? ) ?? false ) ? objs[1] : null;
-                                } ) },
+                    //{ "vars", new MethodWrapper( (objs)=>globalVarsToString() )  }, // DEBUG ONLY!
             { "if", new MethodWrapper( (objs ) => { // TODO implement 'else'
                     if ( objs.Length < 2 )
                         throw new InvalidOperationException("'if' conditional missing required blocks (2 needed, "
@@ -283,10 +286,92 @@ namespace vax.vaxqript {
                 HoldType.First );
         }
 
+        private string dotOpExceptionMessage( object n, object m ) {
+            return "Identifier-Identifier, CompositeIdentifier-Identifier or object-string pair expected; found "
+            + MiscUtils.toDebugString( n ) + " and " + MiscUtils.toDebugString( m ) + " instead";
+        }
+
+        private object execOnBlock(IExecutable iexecutable, object n, object m) {
+            CodeBlock cb = m as CodeBlock;
+            if ( cb == null ) {
+                throw new InvalidOperationException(dotOpExceptionMessage(n,m));
+            }
+            if ( cb.isEmpty() ) {
+                return iexecutable.exec(this,null);
+            }
+            object cbEval = cb.eval(this);
+            ValueList vl = cbEval as ValueList;
+            return ( vl != null ) ? iexecutable.exec(this,vl.ToArray()) : iexecutable.exec(this,cbEval);
+        }
+
+        private object objectMethodHandler( object n, object m, Identifier idM ) {
+            IEvaluable ievaN = n as IEvaluable;
+            if ( ievaN == null ) {
+                ObjectMethod om = n as ObjectMethod;
+                if ( om == null ) {
+                    throw new InvalidOperationException(dotOpExceptionMessage(n,m));                                                                                   
+                }
+                return execOnBlock(om, n, m);
+            }
+            object oN = ievaN.eval(this);
+            Type t = oN as Type;
+            if ( t == null ) {
+                t = oN.GetType();
+            }
+
+            string s;
+            object oM;
+            if( idM != null ) {
+                s = idM.Name;
+                oM = null;
+            } else {
+                IEvaluable ievaM = m as IEvaluable;
+                if( ievaM == null ) {
+                    throw new InvalidOperationException( dotOpExceptionMessage( n, m ) );                                           
+                }
+                oM = ievaM.eval( this );
+                s = oM as string;
+            }
+            MethodInfo mi;
+            if ( s == null ) {
+                mi = oM as MethodInfo;
+                if ( mi == null ) {
+                    throw new InvalidOperationException(dotOpExceptionMessage(n,m));                                           
+                }
+            } else {
+                mi = t.GetMethod( s );
+                if ( mi == null ) {
+                    throw new InvalidOperationException("method '"+s+"' not found in type '"+t+"'" );
+                }
+            }
+            return new ObjectMethod( oN, mi );
+        }
 
         protected void createDefaultOperators () {
             Operator[] defaultOperators = {
                 // internal script engine operators
+                new Operator( ".", null, // method operator
+                    (n,m)=>{
+                        CompositeIdentifier ci = n as CompositeIdentifier;
+                        Identifier idM = m as Identifier;
+                        if ( ci == null ) {
+                            if ( idM == null ) {
+                                return objectMethodHandler(n,m,idM);
+                            } // else m is a valid Identifier
+
+                            Identifier idN = n as Identifier;
+                            if ( idN == null ) {
+                                return objectMethodHandler(n,m,idM);
+                            }
+                            return new CompositeIdentifier(){ idN, idM };
+                        } 
+                        if ( idM == null ) {
+                            return execOnBlock( ci, n, m );
+                        }
+                        ci.Add(idM);                                
+                        return ci;
+                    }, HoldType.All ),
+                /*
                 new Operator( ".", (n ) => { // method operator
                     return null;
                 }, (n, m ) => {
@@ -298,11 +383,14 @@ namespace vax.vaxqript {
                     }
                     return new ObjectMethod(n, t.GetMethod( m ) );
                 } ),
+                */
+                /*
                 new Operator( "@", (n ) => { // method operator
                     return ((ObjectMethod)n).invoke( null ); // 'null' instead of 'object[0]' for some obscure, ericlipperty reason
                 }, (n, m ) => {
                     return ((ObjectMethod)n).invoke( m );
                 } ),
+                */
                 new Operator( "'", (n ) => { // Identifier<->string operator; coincidentally doubles as "alternative string quotes"
                     ValueWrapper vw = n as ValueWrapper;
                     if( vw != null ) {
@@ -424,7 +512,7 @@ namespace vax.vaxqript {
                         o.Dequeue( m );
                         return n;
                     }
-                    //else if ( n is LinkedList ) { n.AddLast(m); return n; }
+                    //if ( o is LinkedList<> ) { o.RemoveLast(); return n; }
                     if( o is ICollection ) {
                         o.Remove( m );
                         return n;
@@ -491,60 +579,15 @@ namespace vax.vaxqript {
 
         public Func<dynamic, dynamic, dynamic> getNaryOperator ( string opString ) {
             return operatorValueOf( opString ).NaryLambda;
-            /*
-            Func<dynamic, dynamic, dynamic> ret;
-            naryOperatorDictionary.TryGetValue( opString, out ret );
-            return ret;
-            */
         }
 
-        /*
-        // flow operators
-        OP_ParenthesisLeft( "(", -1, -1, type.OT_Prefix, true ),
-        OP_ParenthesisRight( ")", -1, -1, type.OT_Postfix, true ),
-        OP_BracketLeft( "[", -1, 1, type.OT_Prefix, true ),
-        OP_BracketRight( "]", -1, 1, type.OT_Postfix, true ),
-        OP_BraceLeft( "{", -1, -1, type.OT_Prefix, true ),
-        OP_BraceRight( "}", -1, -1, type.OT_Postfix, true ),
-        OP_Separator( ",", -1, 2, type.OT_Infix, true ),
-        OP_Terminator( ";", -1, 1, type.OT_Postfix, true ),
-        OP_Internal( "#", -1, 1, type.OT_Prefix, true ),
-        // secondary flow operators
+        /* // some ideas from old engine:
         OP_ForeachForward( ">>", -1, 2, type.OT_Infix ),
         OP_ForeachBackward( "<<", -1, 2, type.OT_Infix ), // last operator in enum
         OP_Ellipsis( "...", -1, 0, type.OT_Prefix ), // vararg def
-        OP_New( "@", -1, 1, type.OT_Prefix ), // strange, but simple
-        // regular operators
-        OP_Select( ".", -2, 2, type.OT_Infix ), // single dot (selection operator) should create an identifier if followed by alpha char
-        OP_Increment( "++", -1, 1, type.OT_PrefixPostfix ), // L-VAL
-        OP_Decrement( "--", -1, 1, type.OT_PrefixPostfix ), // L-VAL
-        OP_BoolNot( "!", 0, 1, type.OT_Prefix ),
-        OP_Range( "..", 0, 2, type.OT_Infix ), // array range selector
-        OP_InstanceOf( "??", 0, 2, type.OT_Infix ), // again, strange, but simple
-        OP_Multiply( "*", 1, 2, type.OT_Infix ),
-        OP_Divide( "/", 1, 2, type.OT_Infix ),
-        OP_Remainder( "%", 1, 2, type.OT_Infix ),
-        OP_Plus( "+", 2, 2, type.OT_Infix ),
-        OP_Minus( "-", 2, 2, type.OT_Infix ),
-        OP_MoreThan( ">", 3, 2, type.OT_Infix ),
-        OP_LessThan( "<", 3, 2, type.OT_Infix ),
-        OP_MoreOrEq( ">=", 3, 2, type.OT_Infix ),
-        OP_LessOrEq( "<=", 3, 2, type.OT_Infix ),
-        OP_IsEqual( "==", 4, 2, type.OT_Infix ),
-        OP_IsNotEqual( "!=", 4, 2, type.OT_Infix ),
-        OP_BoolAnd( "&&", 5, 2, type.OT_Infix ),
-        OP_BoolAndLong( "&", 5, 2, type.OT_Infix ),
-        OP_BoolOr( "||", 6, 2, type.OT_Infix ),
-        OP_BoolOrLong( "|", 6, 2, type.OT_Infix ),
-        OP_Equals( "=", 7, 2, type.OT_Infix ), // L-VAL
-        OP_ThisPlus( "+=", 7, 2, type.OT_Infix ), // L-VAL
-        OP_ThisMinus( "-=", 7, 2, type.OT_Infix ), // L-VAL
-        OP_ThisMultiply( "*=", 7, 2, type.OT_Infix ), // L-VAL
-        OP_ThisDivide( "/=", 7, 2, type.OT_Infix ), // L-VAL
-        OP_ThisRemainder( "%=", 7, 2, type.OT_Infix ), // L-VAL
-        //OP_TernaryStart( "?", 7, type.OT_Ternary ),
-        //OP_TernaryEnd( ":", 7, type.OT_Ternary ), // shared with case selector in "case X:"; op_prec doesn't matter in that case
-        ;
+        OP_InstanceOf( "??", 0, 2, type.OT_Infix ),
+        OP_TernaryStart( "?", 7, type.OT_Ternary ),
+        OP_TernaryEnd( ":", 7, type.OT_Ternary ),
         */
 
         protected object wrapRetVal ( object ret ) {

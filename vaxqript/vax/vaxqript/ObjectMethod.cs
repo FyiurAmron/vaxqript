@@ -2,7 +2,7 @@
 using System.Reflection;
 
 namespace vax.vaxqript {
-    public class ObjectMethod {
+    public class ObjectMethod : IExecutable {
         object Object { get; set; }
 
         MethodInfo Method { get; set; }
@@ -16,8 +16,20 @@ namespace vax.vaxqript {
             return Method.Invoke( Object, args );
         }
 
+        public HoldType getHoldType ( Engine engine ) {
+            return HoldType.None;
+        }
+
+        // added for convenience
+        public object exec ( Engine engine, params dynamic[] arguments ) {
+            engine.increaseStackCount();
+            object ret = invoke( arguments );
+            engine.decreaseStackCount();
+            return ret;
+        }
+
         public override string ToString () {
-            return string.Format( "object: " + MiscUtils.toString(Object) + "\nmethod: " + Method );
+            return string.Format( "[ObjectMethod]\nobject: " + MiscUtils.toString( Object ) + "\nmethod: " + MiscUtils.toString( Method ) );
         }
     }
 }
