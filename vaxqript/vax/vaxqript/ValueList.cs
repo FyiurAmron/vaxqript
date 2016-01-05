@@ -10,7 +10,7 @@ namespace vax.vaxqript {
         }
 
         public override string ToString () {
-            return MiscUtils.join( ",", this );
+            return "[" + MiscUtils.join( ",", this ) + "]";
         }
     }
 }

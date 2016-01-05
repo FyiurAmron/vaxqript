@@ -176,6 +176,12 @@ namespace vax.vaxqript {
                 return MiscUtils.createNew(t, args);
             } ));
 
+            Identifier //
+                whileId = new Identifier( "while" ),
+                ifId = new Identifier( "if" ),
+                elseId = new Identifier( "else" );
+
+
             // note: below code fails to autoformat properly in Xamarin Studio IDE
             Dictionary<string,object> defaultVarsMap = new Dictionary<string,object> {
                 //// common identifiers
@@ -205,37 +211,7 @@ namespace vax.vaxqript {
                  //$args[]
                         //// basic syntax
                         // method-type (delegate) default vars
-
-                    //{ "vars", new MethodWrapper( (objs)=>globalVarsToString() )  }, // DEBUG ONLY!
                 // maybe todo switch?
-            { "if", new MethodWrapper( (objs ) => { // TODO implement 'else'
-                    ensureArgCount( "if", 2, objs);
-                return ( ( objs[0] as bool? ) ?? false ) ? objs[1] : null;
-                                    } ) },
-            { "while", new MethodWrapper( (objs ) => {
-                    ensureArgCount( "while", 2, objs);
-                    IEvaluable //
-                condition = objs[0] as IEvaluable,
-                body = objs[1] as IEvaluable;
-                while( ( condition.eval( this ) as bool? ) ?? false ) {
-                    body.eval( this ); // return is ignored here
-                }
-                return null; // TODO implement 'return' as loop breaker here
-                                        }, HoldType.All ) },
-                { "do", new MethodWrapper( (objs ) => {
-                    ensureArgCount( "do", 3, objs);
-
-                    IEvaluable //
-                    body = objs[0] as IEvaluable,
-                    whileKeyword = objs[1] as IEvaluable,
-                    // TODO assert objs[1] == Identifier("while");
-                    condition = objs[2] as IEvaluable;
-
-                    do {
-                        body.eval( this ); // return is ignored here
-                    } while ( ( condition.eval( this ) as bool? ) ?? false );
-                    return null; // TODO implement 'return' as loop breaker here
-                }, HoldType.All ) },
             { "for", new MethodWrapper( (objs ) => { // TODO implement 'else'
                     ensureArgCount( "for", 2, objs);
                     CodeBlock cb = objs[0] as CodeBlock;
@@ -250,7 +226,23 @@ namespace vax.vaxqript {
                 }
                 return null; // TODO implement 'return' as loop breaker here
                                             }, HoldType.All ) },
+                // "while" is a bit further in this method
+                { "do", new MethodWrapper( (objs ) => {
+                    ensureArgCount( "do", 3, objs);
 
+                    if ( !whileId.Equals( objs[1] )) {
+                        throw new InvalidOperationException("'"+whileId.Name + " ' expected in 'do' block; found '" + objs[1] + "' instead");
+                    }
+
+                    IEvaluable //
+                    body = objs[0] as IEvaluable,
+                    condition = objs[2] as IEvaluable;
+
+                    do {
+                        body.eval( this ); // return is ignored here
+                    } while ( ( condition.eval( this ) as bool? ) ?? false );
+                    return null; // TODO implement 'return' as loop breaker here
+                }, HoldType.All ) },
             //// utility methods
             { "print", new MethodWrapper( (objs ) => {
                 foreach( object o in objs ) {
@@ -268,6 +260,42 @@ namespace vax.vaxqript {
             // note: by default, with 'func(arg0,arg1...)' syntax, obj[0] contains *all* arguments passed, wrapped as a CodeBlock;
             // to pass the arguments *directly*, use 'func arg0 arg1'
             // - this is *strictly* required for composite (multi-block) methods (like 'for', 'while' etc) to work at all!
+            setIdentifierValueConstant( ifId, new MethodWrapper( (objs ) => {
+                ensureArgCount( "if", 2, objs);
+                int len = objs.Length;
+                bool hasLoneElse = (len % 4 == 0);
+                for( int i = 0; i < len; i += 2 ) {
+                    if ( ( ((IEvaluable)objs[i]).eval(this) as bool? ) ?? false ) {
+                        return ((IEvaluable)objs[i+1]).eval(this);
+                    }
+                    i += 2;
+                    if ( i >= len )
+                        return null;
+                    if ( !elseId.Equals( objs[i] )) {
+                        throw new InvalidOperationException("'"+elseId.Name + " ' expected in 'if' block; found '" + objs[i] + "' instead");
+                    }
+                    if ( hasLoneElse ) {
+                        if ( i + 2 == len ) {
+                            return ((IEvaluable)objs[i+1]).eval(this);
+                        }
+                    } else if ( !ifId.Equals( objs[i+1] )) {
+                        throw new InvalidOperationException("'"+ifId.Name + " ' expected in 'if' block; found '" + objs[i+1] + "' instead");
+                    }
+                }
+                return null;
+            }, HoldType.All ) );
+            setIdentifierValueConstant ( whileId, new MethodWrapper( (objs ) => {
+                ensureArgCount( "while", 2, objs);
+                IEvaluable //
+                condition = objs[0] as IEvaluable,
+                body = objs[1] as IEvaluable;
+                while( ( condition.eval( this ) as bool? ) ?? false ) {
+                    body.eval( this ); // return is ignored here
+                }
+                return null; // TODO implement 'return' as loop breaker here
+            }, HoldType.All ));
+
+
 
                                                     foreach( KeyValuePair<string, object> entry in defaultVarsMap ) {
                 setIdentifierValueConstant(entry.Key, entry.Value);
@@ -449,6 +477,15 @@ namespace vax.vaxqript {
                     (n, m ) => n - m ),
                 new Operator( "!", (n ) => !n, null ),
                 new Operator( "~", (n ) => ~n, null ),
+                new Operator( "::", (n) => new ValueList(1){n},
+                    (n,m)=>{
+                        IList list = n as IList ;
+                        if ( list == null ) {
+                            list = new ValueList(1){n};
+                        }
+                        list.Add(m);
+                        return list;
+                    }),
                 new Operator( "=!", (n ) => {
                     ValueWrapper vw = getIdentifierValue( n );
                     dynamic val = vw.Value;

@@ -41,6 +41,8 @@ namespace vax.vaxqript {
                 //"$engine.\"globalVarsToString\"()",
                 "(\"vax.vaxqript.Test\"?).testMethod()",
                 "vax.vaxqript.Test.testMethod()",
+                "evi := (if(i>10)2 else if(i>5)1 else 0)",
+                ":: {i=12;evi} {i=6;evi} {i=2;evi}"
                 //"vax.vaxqript.Test.test1a($engine)"
             };
 

@@ -45,9 +45,7 @@
     <Compile Include="vax\vaxqript\CodeTreeBuilder.cs" />
     <Compile Include="vax\vaxqript\ValueWrapper.cs" />
     <Compile Include="vax\vaxqript\ISyntaxElement.cs" />
-    <Compile Include="vax\vaxqript\Flow.cs" />
     <Compile Include="vax\vaxqript\UnknownElement.cs" />
-    <Compile Include="vax\vaxqript\FlowOperator.cs" />
     <Compile Include="vax\vaxqript\IExecutable.cs" />
     <Compile Include="vax\vaxqript\Lexer.cs" />
     <Compile Include="vax\vaxqript\LinearSyntax.cs" />
@@ -69,6 +67,8 @@
     <Compile Include="vax\vaxqript\ObjectMethod.cs" />
     <Compile Include="vax\vaxqript\CompositeIdentifier.cs" />
     <Compile Include="vax\vaxqript\Test.cs" />
+    <Compile Include="vax\vaxqript\SyntaxFlow.cs" />
+    <Compile Include="vax\vaxqript\SyntaxFlowOperator.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

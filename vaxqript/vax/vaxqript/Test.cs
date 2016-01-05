@@ -140,18 +140,25 @@ namespace vax.vaxqript {
                 "4 + 2 + ( 3.1 * 3 )", // 15.3
                 "foo", // 8
                 "{ 4 + 2 + ( 3.1 * 3 ); 10.5; foo * 2", // note: 'foo' is declared in previous tests!
+                // 16
+                ":: { 4 + 2 + ( 3.1 * 3 )} {10.5} {foo * 2}", // note: 'foo' is declared in previous tests!
                 // 15.3,10.5,16
                 @"{
                     i = 3;
                     i++;
-                }", // 3, 4
+                }", // 4
                 @"{
                     i = 3;
                     i = 10;
                     i++;
                     i + 7;
-                }", // 3, 10, 11, 18
+                }", // 18
                 "testObj1 + 1", // 13
+                "@(vars = ($engine.globalVarsToString()))",
+                "start = (vax.vaxqript.MiscUtils.getCurrentTimeMillis());" +
+                "for(i=0;i<1_000_000;i++){};" +
+                "stop = (vax.vaxqript.MiscUtils.getCurrentTimeMillis());" +
+                "stop-start"
             };
             testRun( ss, engine );
         }

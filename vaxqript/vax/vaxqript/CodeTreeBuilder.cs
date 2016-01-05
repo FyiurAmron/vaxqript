@@ -9,24 +9,24 @@ namespace vax.vaxqript {
         private CodeBlock currentCodeBlock;
         private bool hasSeparator;
         private bool ignoreLastSeparator = true; // i.e. ';}' sequence, that should usually be interpreted as just '}'
-        private Flow lastFlow = Flow.None;
+        private SyntaxFlow lastFlow = SyntaxFlow.None;
 
         public CodeTreeBuilder () {
             currentCodeBlock = root;
         }
 
         public void consume ( ISyntaxElement syntaxElement ) {
-            FlowOperator flowOp = syntaxElement as FlowOperator;
+            SyntaxFlowOperator flowOp = syntaxElement as SyntaxFlowOperator;
             if( flowOp != null ) {
-                Flow flow = flowOp.Flow;
+                SyntaxFlow flow = flowOp.Flow;
                 switch (flow) {
-                case Flow.Down:
+                case SyntaxFlow.Down:
                     _down();
                     break;
-                case Flow.Up:
+                case SyntaxFlow.Up:
                     _upExt();
                     break;
-                case Flow.Separator:
+                case SyntaxFlow.Separator:
                     _separator();
                     break;
                 default:
@@ -36,7 +36,7 @@ namespace vax.vaxqript {
                 return;
             }  // else not a flow, so just attach as a node
             if( !( syntaxElement is IComment ) ) {
-                lastFlow = Flow.None;
+                lastFlow = SyntaxFlow.None;
                 currentCodeBlock.add( syntaxElement );
             }
             // else just ignore, since it's an IComment
@@ -93,7 +93,7 @@ namespace vax.vaxqript {
 
         private void _upExt () {
             _up();
-            if( ignoreLastSeparator && lastFlow == Flow.Separator ) {
+            if( ignoreLastSeparator && lastFlow == SyntaxFlow.Separator ) {
                 _back();
             }
             if ( hasSeparator ) {

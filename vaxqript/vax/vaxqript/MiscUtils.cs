@@ -14,6 +14,9 @@ namespace vax.vaxqript {
         public MiscUtils () {
         }
         */
+        public static int getCurrentTimeMillis() {
+            return Environment.TickCount;
+        }
 
         public static object getRandomForType ( Type t ) {
             switch (Type.GetTypeCode( t )) {
@@ -54,7 +57,9 @@ namespace vax.vaxqript {
         public static Type getTypeFor ( object n ) {
             string s = n as string;
             if( s != null ) { // get type from name
-                return Type.GetType( s );
+                Type t = Type.GetType( s );
+                if( t != null )
+                    return t;
             }
             ValueWrapper vw = n as ValueWrapper;
             if( vw != null ) {

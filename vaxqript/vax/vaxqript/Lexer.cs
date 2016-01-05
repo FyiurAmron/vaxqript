@@ -349,16 +349,16 @@ namespace vax.vaxqript {
                     case BLOCK_OPEN_CHAR_2:
                         pos++;
                         endPos++;
-                        return FlowOperator.valueOf( Flow.Down );
+                        return SyntaxFlowOperator.valueOf( SyntaxFlow.Down );
                     case BLOCK_CLOSED_CHAR_1:
                     case BLOCK_CLOSED_CHAR_2:
                         pos++;
                         endPos++;
-                        return FlowOperator.valueOf( Flow.Up );
+                        return SyntaxFlowOperator.valueOf( SyntaxFlow.Up );
                     case BLOCK_SEPARATOR_CHAR:
                         pos++;
                         endPos++;
-                        return FlowOperator.valueOf( Flow.Separator );
+                        return SyntaxFlowOperator.valueOf( SyntaxFlow.Separator );
                     case SEPARATOR_CHAR:
                         pos++;
                         endPos++;
@@ -370,16 +370,16 @@ namespace vax.vaxqript {
                     case BLOCK_OPEN_CHAR_2:
                         pos++;
                         endPos++;
-                        return FlowOperator.valueOf( Flow.Down );
+                        return SyntaxFlowOperator.valueOf( SyntaxFlow.Down );
                     case BLOCK_CLOSED_CHAR_1:
                     case BLOCK_CLOSED_CHAR_2:
                         pos++;
                         endPos++;
-                        return FlowOperator.valueOf( Flow.Up );
+                        return SyntaxFlowOperator.valueOf( SyntaxFlow.Up );
                     case BLOCK_SEPARATOR_CHAR:
                         pos++;
                         endPos++;
-                        return FlowOperator.valueOf( Flow.Separator );
+                        return SyntaxFlowOperator.valueOf( SyntaxFlow.Separator );
                     case COMMENT_CHAR:
                     case QUOTE_CHAR:
                     case PARSER_OP_CHAR:

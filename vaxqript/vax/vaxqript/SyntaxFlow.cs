@@ -1,7 +1,7 @@
 ﻿using System;
 
 namespace vax.vaxqript {
-    public enum Flow {
+    public enum SyntaxFlow {
         Up,
         Down,
         Separator,

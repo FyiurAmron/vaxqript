@@ -198,7 +198,6 @@ namespace vax.vaxqript {
                 }
             }
             object o = arguments[0].eval( engine );
-            ValueList retList;
 
             if( count > 1 ) {
                 CompositeIdentifier cid = o as CompositeIdentifier;
@@ -208,12 +207,15 @@ namespace vax.vaxqript {
                 }
             }
 
-            retList = new ValueList( count );
+            /*
+            ValueList retList = new ValueList( count );
             retList.Add( o );
+            */
             for( int i = 1; i < count; i++ ) {
-                retList.Add( arguments[i].eval( engine ) );
+                //retList.Add( arguments[i].eval( engine ) );
+                o = arguments[i].eval( engine );
             }
-            return retList;
+            return o;
         }
 
         public dynamic eval ( Engine engine ) {
