@@ -19,7 +19,8 @@ namespace vax.vaxqript {
         public Identifier NewIdentifier { get; private set; } /* = new Identifier("new");*/
         private ValueWrapper undefinedValue = new ValueWrapper( Undefined.INSTANCE );
 
-        private int stackCount = 0;
+        //private Stack<ISyntaxElement> callStack = new Stack<ISyntaxElement>();
+        private LinkedList<ISyntaxElement> callStack = new LinkedList<ISyntaxElement>();
 
         public int StackLimit { get; set; }
 
@@ -33,21 +34,20 @@ namespace vax.vaxqript {
             createDefaultOperators();
         }
 
-        public void increaseStackCount () {
-            stackCount++;
-            if( stackCount > StackLimit ) {
+        public void pushCallStack ( ISyntaxElement caller ) {
+            //callStack.Push( caller );
+            callStack.AddLast( caller );
+            if( callStack.Count > StackLimit ) {
                 throw new InvalidOperationException( "stack overflow" );
             }
         }
 
-        public void decreaseStackCount () {
-            stackCount--;
-            if( stackCount < 0 ) {
-                throw new InvalidOperationException( "stack underflow" );
-            }
+        public void popCallStack () {
+            //callStack.Pop();
+            callStack.RemoveLast();
         }
 
-        private T  valueNotFound<T> ( string identifierName, T undefinedValue ) {
+        private T valueNotFound<T> ( string identifierName, T undefinedValue ) {
             switch (UndefinedVariableBehaviour) {
             case UndefinedVariableBehaviour.ReturnRawNull:
                 return default(T);
@@ -147,6 +147,13 @@ namespace vax.vaxqript {
             return "ENGINE VARS:\n" + MiscUtils.join( "\n", globalVarMap );
         }
 
+        private void ensureArgCount( string statementName, int requiredCount, object[] args )  {
+            if ( args.Length < requiredCount ) {
+                throw new InvalidOperationException("'"+statementName+"' statement missing required blocks ("+requiredCount+" needed, "
+                        +args.Length+" found)");
+            }
+        }
+
         protected void createDefaultVariables () {
             if( UndefinedVariableBehaviour == UndefinedVariableBehaviour.ReturnUndefined ) {
                 setIdentifierValueConstant( UndefinedIdentifier, Undefined.INSTANCE );
@@ -200,17 +207,13 @@ namespace vax.vaxqript {
                         // method-type (delegate) default vars
 
                     //{ "vars", new MethodWrapper( (objs)=>globalVarsToString() )  }, // DEBUG ONLY!
+                // maybe todo switch?
             { "if", new MethodWrapper( (objs ) => { // TODO implement 'else'
-                    if ( objs.Length < 2 )
-                        throw new InvalidOperationException("'if' conditional missing required blocks (2 needed, "
-                            +objs.Length+" found)");
+                    ensureArgCount( "if", 2, objs);
                 return ( ( objs[0] as bool? ) ?? false ) ? objs[1] : null;
                                     } ) },
             { "while", new MethodWrapper( (objs ) => {
-                    if ( objs.Length < 2 )
-                        throw new InvalidOperationException("'while' loop missing required blocks (2 needed, "
-                            +objs.Length+" found)");
-                    
+                    ensureArgCount( "while", 2, objs);
                     IEvaluable //
                 condition = objs[0] as IEvaluable,
                 body = objs[1] as IEvaluable;
@@ -219,15 +222,29 @@ namespace vax.vaxqript {
                 }
                 return null; // TODO implement 'return' as loop breaker here
                                         }, HoldType.All ) },
+                { "do", new MethodWrapper( (objs ) => {
+                    ensureArgCount( "do", 3, objs);
+
+                    IEvaluable //
+                    body = objs[0] as IEvaluable,
+                    whileKeyword = objs[1] as IEvaluable,
+                    // TODO assert objs[1] == Identifier("while");
+                    condition = objs[2] as IEvaluable;
+
+                    do {
+                        body.eval( this ); // return is ignored here
+                    } while ( ( condition.eval( this ) as bool? ) ?? false );
+                    return null; // TODO implement 'return' as loop breaker here
+                }, HoldType.All ) },
             { "for", new MethodWrapper( (objs ) => { // TODO implement 'else'
-                    if ( objs.Length < 4 )
-                        throw new InvalidOperationException("'for' loop missing required blocks (4 needed, "
-                            +objs.Length+" found)");
+                    ensureArgCount( "for", 2, objs);
+                    CodeBlock cb = objs[0] as CodeBlock;
+                    List<IEvaluable> list = cb.getArgumentList();
                 IEvaluable //
-                init = objs[0] as IEvaluable,
-                condition = objs[1] as IEvaluable,
-                step = objs[2]as IEvaluable,
-                body = objs[3] as IEvaluable;
+                    init = list[0] as IEvaluable,
+                condition = list[1] as IEvaluable,
+                step = list[2]as IEvaluable,
+                body = objs[1] as IEvaluable;
                 for( init.eval( this ); ( condition.eval( this ) as bool? ) ?? false; step.eval( this ) ) {
                     body.eval( this );
                 }
@@ -349,7 +366,7 @@ namespace vax.vaxqript {
 
         protected void createDefaultOperators () {
             Operator[] defaultOperators = {
-                // internal script engine operators
+                //// internal script engine operators
                 new Operator( ".", null, // method operator
                     (n,m)=>{
                         CompositeIdentifier ci = n as CompositeIdentifier;
@@ -384,13 +401,6 @@ namespace vax.vaxqript {
                     return new ObjectMethod(n, t.GetMethod( m ) );
                 } ),
                 */
-                /*
-                new Operator( "@", (n ) => { // method operator
-                    return ((ObjectMethod)n).invoke( null ); // 'null' instead of 'object[0]' for some obscure, ericlipperty reason
-                }, (n, m ) => {
-                    return ((ObjectMethod)n).invoke( m );
-                } ),
-                */
                 new Operator( "'", (n ) => { // Identifier<->string operator; coincidentally doubles as "alternative string quotes"
                     ValueWrapper vw = n as ValueWrapper;
                     if( vw != null ) {
@@ -416,8 +426,7 @@ namespace vax.vaxqript {
                 }, null, HoldType.All ),
                 new Operator( "?",
                     (n ) => MiscUtils.getTypeFor(n),
-                    null
-                    /*
+                    //null
                     (n,m) => { // note: maybe it's not the best idea, but I leave it here for reference & future generations
                         IList list = n as IList;
                         if ( list == null ) {
@@ -427,9 +436,11 @@ namespace vax.vaxqript {
                         list.Add( MiscUtils.getTypeFor(m));
                         return list;
                     }
-                */
                 ), // 'typeof' operator
-                //regular unary/nary operators
+                //new Operator( "=>"),
+                new Operator( "@", (n ) => "", (n,m) => m), // suppress return operator
+                //new Operator( "*&", () => callStack.Last.Previous.Previous.Value ),
+                ////regular unary/nary operators
                 new Operator( "+",
                     (n ) => +n,
                     (n, m ) => n + m ),
@@ -438,6 +449,24 @@ namespace vax.vaxqript {
                     (n, m ) => n - m ),
                 new Operator( "!", (n ) => !n, null ),
                 new Operator( "~", (n ) => ~n, null ),
+                new Operator( "=!", (n ) => {
+                    ValueWrapper vw = getIdentifierValue( n );
+                    dynamic val = vw.Value;
+                    val = !val;
+                    setIdentifierValue( n, val );
+                    return val;
+                }, null, HoldType.First ),
+                new Operator( "=???", null, (n ) => {
+                    dynamic val = MiscUtils.getRandomForType(getIdentifierValue(n).Value.GetType());
+                    setIdentifierValue( n, val );
+                    return val;
+                }, null, HoldType.First, Associativity.LeftToRight ),
+                new Operator( "???",
+                    () => MiscUtils.RNG.NextDouble(),
+                    (n) => MiscUtils.RNG.Next(n),
+                    (n,m) => MiscUtils.RNG.Next(n,m),
+                    HoldType.None, Associativity.LeftToRight
+                ),
                 createAssignmentOperator( "++", (n ) => ++n, null ),
                 createAssignmentOperator( "--", (n ) => --n, null ),
                 new Operator( "*", null, (n, m ) => n * m ),
@@ -448,8 +477,8 @@ namespace vax.vaxqript {
                 new Operator( "^", null, (n, m ) => n ^ m ),
                 new Operator( "|", null, (n, m ) => n | m ),
                 new Operator( "&", null, (n, m ) => n & m ),
-                new Operator( "||", null, (n, m ) => n || m ),
-                new Operator( "&&", null, (n, m ) => n && m ),
+                new Operator( "||", null, (n, m ) => ((IEvaluable)n).eval(this) || ((IEvaluable)m).eval(this), HoldType.All ), // short-circuit op
+                new Operator( "&&", null, (n, m ) => ((IEvaluable)n).eval(this) && ((IEvaluable)m).eval(this), HoldType.All ), // short-circuit op
                 new Operator( "==", null, (n, m ) => n == m ),
                 new Operator( "!=", null, (n, m ) => n != m ),
                 new Operator( ">", null, (n, m ) => n > m ),
@@ -457,7 +486,7 @@ namespace vax.vaxqript {
                 new Operator( "<", null, (n, m ) => n < m ),
                 new Operator( "<=", null, (n, m ) => n <= m ),
                 new Operator( "??", null, (n, m ) => n ?? m ),
-                // TODO ternary as "?:"
+                // TODO ternary as "?:" ?
                 new Operator( "=", null, (n, m ) => {
                     setIdentifierValue( m, n );
                     return n;
@@ -531,8 +560,7 @@ namespace vax.vaxqript {
             foreach( Operator op in defaultOperators ) {
                 addOperator( op );
             }
-            Operator indexer = new Operator( "[]", null,
-                                   (n, m ) => n[m] );
+            Operator indexer = new Operator( "[]", null, (n, m ) => n[m] );
             /*
             Operator indexerSet = new Operator( "[]=", null,
                 (n, m ) => {
@@ -609,10 +637,12 @@ namespace vax.vaxqript {
         }
 
         public object eval ( IEvaluable iEvaluable ) {
+            callStack.Clear();
             return wrapRetVal( iEvaluable.eval( this ) );
         }
 
         public object exec ( IExecutable iExecutable, params dynamic[] arguments ) {
+            callStack.Clear();
             return wrapRetVal( iExecutable.exec( this, arguments ) );
         }
 

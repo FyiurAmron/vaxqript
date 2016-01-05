@@ -6,13 +6,17 @@ namespace vax.vaxqript {
 
         public HoldType HoldType { get; private set; }
 
-        public Associativity Associativity{ get; private set; }
+        public Associativity Associativity { get; private set; }
 
         public Func<dynamic> NullaryLambda { get; private set; }
 
         public Func<dynamic, dynamic> UnaryLambda { get; private set; }
 
         public Func<dynamic, dynamic, dynamic> NaryLambda { get; private set; }
+
+        public Operator ( string operatorString, Func<dynamic> nullaryLambda )
+            : this( operatorString, nullaryLambda, null, null, HoldType.None, Associativity.LeftToRight ) {
+        }
 
         public Operator ( string operatorString, Func<dynamic, dynamic> unaryLambda, Func<dynamic, dynamic, dynamic> naryLambda )
             : this( operatorString, unaryLambda, naryLambda, HoldType.None, Associativity.LeftToRight ) {
@@ -40,7 +44,7 @@ namespace vax.vaxqript {
             return HoldType;
         }
         // TODO: null checks for lambdas!!!
-        private object _exec ( Engine engine, params dynamic[] arguments ) {
+        private dynamic _exec ( Engine engine, params dynamic[] arguments ) {
             switch (arguments.Length) {
             case 0:
                 return applyNullary();
@@ -51,10 +55,10 @@ namespace vax.vaxqript {
             }
         }
 
-        public object exec ( Engine engine, params dynamic[] arguments ) {
-            engine.increaseStackCount();
+        public dynamic exec ( Engine engine, params dynamic[] arguments ) {
+            engine.pushCallStack( this );
             object ret = _exec( engine, arguments );
-            engine.decreaseStackCount();
+            engine.popCallStack();
             return ret;
         }
 

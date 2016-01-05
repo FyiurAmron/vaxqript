@@ -7,7 +7,7 @@ namespace vax.vaxqript {
         private Undefined () {
         }
 
-        public object eval ( Engine engine ) {
+        public dynamic eval ( Engine engine ) {
             return this; // doesn't evaluate at all
         }
 

@@ -15,14 +15,14 @@ namespace vax.vaxqript {
             AddLast( identifier );
         }
 
-        public object exec ( Engine engine, params dynamic[] arguments ) {
-            engine.increaseStackCount();
+        public dynamic exec ( Engine engine, params dynamic[] arguments ) {
+            engine.pushCallStack( this );
             object ret = _exec( engine, arguments );
-            engine.decreaseStackCount();
+            engine.popCallStack();
             return ret;
         }
 
-        public object _exec ( Engine engine, params dynamic[] arguments ) {
+        public dynamic _exec ( Engine engine, params dynamic[] arguments ) {
             if( Count == 0 ) {
                 throw new InvalidOperationException( "0 Identifiers in this CompositeIdentifier; nothing to execute" );
             }

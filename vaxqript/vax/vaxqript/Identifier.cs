@@ -10,9 +10,10 @@ namespace vax.vaxqript {
 
         public HoldType getHoldType ( Engine engine ) {
             return ( (IExecutable) engine.getIdentifierValue( this ).Value ).getHoldType( engine );
-        } // note: shouldn't be used in normal situations
+        }
+        // note: shouldn't be used in normal situations
 
-        public object eval ( Engine engine ) {
+        public dynamic eval ( Engine engine ) {
             ValueWrapper o = engine.getIdentifierValue( this );
             if( o == null ) {
                 return this;
@@ -21,23 +22,23 @@ namespace vax.vaxqript {
             if( val == this )
                 throw new StackOverflowException( "trying to evaluate an Identifier directly referencing itself" );
             IEvaluable ie = val as IEvaluable;
-            engine.increaseStackCount();
+            engine.pushCallStack( this );
             object ret = ( ie == null ) ? val : ie.eval( engine );
-            engine.decreaseStackCount();
+            engine.popCallStack();
             return ret;
         }
 
-        public object exec ( Engine engine, params dynamic[] arguments ) {
+        public dynamic exec ( Engine engine, params dynamic[] arguments ) {
             ValueWrapper vw = engine.getIdentifierValue( this );
             if( vw == null )
                 throw new InvalidOperationException( "identifier '" + Name + "' not defined yet" );
 
             MethodWrapper methodWrapper = vw.Value as MethodWrapper;
-            engine.increaseStackCount();
+            engine.pushCallStack( this );
             object ret = ( methodWrapper == null )
                 ? eval( engine )
                 : methodWrapper.invokeWith( arguments );
-            engine.decreaseStackCount();
+            engine.popCallStack();
             return ret;
         }
 

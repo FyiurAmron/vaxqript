@@ -21,10 +21,10 @@ namespace vax.vaxqript {
         }
 
         // added for convenience
-        public object exec ( Engine engine, params dynamic[] arguments ) {
-            engine.increaseStackCount();
+        public dynamic exec ( Engine engine, params dynamic[] arguments ) {
+            engine.pushCallStack( this );
             object ret = invoke( arguments );
-            engine.decreaseStackCount();
+            engine.popCallStack();
             return ret;
         }
 

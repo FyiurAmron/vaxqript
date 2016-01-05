@@ -9,6 +9,7 @@ namespace vax.vaxqript {
             } catch ( Exception ex ) {
                 Console.WriteLine( Test.exceptionToString( ex ) );
             }
+            Console.ReadKey();
         }
 
         public static void _Main ( string[] args ) {
@@ -28,14 +29,19 @@ namespace vax.vaxqript {
             Console.WriteLine( "=== TEST 4  ===" );
 
             string[] inputs = {
-                "println(\"!!! text output\"+\"\t\"+ 7)",
+                "@(println(\"!!! text output\"+\"\t\"+ 7))",
                 "if ((2+2)==4) {42}",
+                "\"> test while\"",
                 "i=(-10);while(i<10){i++;}; i;",
-                "for(i=1;i<10;i++) { println(i); }",
+                "\"> test for\"",
+                "@{for(i=1;i<10;i++) { println(i); }}",
+                "\"> test do\"",
+                "i = 0; do { println(i); i--; } while (i>(-10));",
+                "\"> test calls\"",
                 //"$engine.\"globalVarsToString\"()",
                 "(\"vax.vaxqript.Test\"?).testMethod()",
                 "vax.vaxqript.Test.testMethod()",
-                "vax.vaxqript.Test.test1a($engine)"
+                //"vax.vaxqript.Test.test1a($engine)"
             };
 
             Test.testRun( inputs, engine );

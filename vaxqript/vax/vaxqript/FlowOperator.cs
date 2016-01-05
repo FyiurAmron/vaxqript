@@ -15,7 +15,7 @@ namespace vax.vaxqript {
                 return new FlowOperator( flow );
             case Flow.Up:
                 return new FlowOperator( flow );
-            case Flow.UpDown:
+            case Flow.Separator:
                 return new FlowOperator( flow );
             }
             throw new InvalidOperationException( "uknown Flow '" + flow + "'" );
@@ -27,7 +27,7 @@ namespace vax.vaxqript {
                 return "{";
             case Flow.Up:
                 return "}";
-            case Flow.UpDown:
+            case Flow.Separator:
                 return ";";
             }
             throw new InvalidOperationException( "uknown Flow '" + flow + "'" );

@@ -7,10 +7,49 @@ namespace vax.vaxqript {
     public static class MiscUtils {
         //public static readonly object[] NO_ARGUMENTS = new object[0];
         public static readonly Type[] NO_ARGUMENTS_TYPE = new Type[0];
+
+        public static readonly Random RNG = new Random();
+        private static readonly byte[] EIGHT_BYTES = new byte[8];
         /*
         public MiscUtils () {
         }
         */
+
+        public static object getRandomForType ( Type t ) {
+            switch (Type.GetTypeCode( t )) {
+            case TypeCode.Char:
+                return (Char) RNG.Next( Char.MinValue, Char.MaxValue );
+            case TypeCode.Byte:
+                return (Byte) RNG.Next( Byte.MinValue, Byte.MaxValue );
+            case TypeCode.SByte:
+                return (SByte) RNG.Next( SByte.MinValue, SByte.MaxValue );
+            case TypeCode.UInt16:
+                return (UInt16) RNG.Next( UInt16.MinValue, UInt16.MaxValue );
+            case TypeCode.UInt32:
+                return (UInt32) RNG.Next( 0, Int32.MaxValue );
+            case TypeCode.UInt64:
+                return (UInt32) RNG.Next( 0, Int32.MaxValue );
+            case TypeCode.Int16:
+                return (Int16) RNG.Next( Int16.MinValue, Int16.MaxValue );
+            case TypeCode.Int32:
+                return (Int32) RNG.Next(); // no actual cast here
+            case TypeCode.Int64:
+                return (Int64) RNG.Next();
+            case TypeCode.Decimal:
+                return (Decimal) RNG.NextDouble();
+            case TypeCode.Single:
+                return (Single) RNG.NextDouble();
+            case TypeCode.Double:
+                return (Double) RNG.NextDouble(); // no actual cast here
+            case TypeCode.Boolean:
+                return RNG.NextDouble() > 0.5;
+            case TypeCode.String:
+                RNG.NextBytes( EIGHT_BYTES );
+                return Encoding.Default.GetString( EIGHT_BYTES );
+            default:
+                return false;
+            }
+        }
 
         public static Type getTypeFor ( object n ) {
             string s = n as string;
@@ -93,15 +132,16 @@ namespace vax.vaxqript {
             case TypeCode.Int32:
             case TypeCode.Int64:
             case TypeCode.Decimal:
-            case TypeCode.Double:
             case TypeCode.Single:
+            case TypeCode.Double:
+                // case TypeCode.Char: // it's numeric actually...
                 return true;
             default:
                 return false;
             }
         }
 
-        public static object createNew( Type type, Type[] types, object[] args ) {
+        public static object createNew ( Type type, Type[] types, object[] args ) {
             // TODO: test if this handles structs well/at all
             if( type.IsPrimitive ) {
                 type = typeof(Nullable<>).MakeGenericType( type );
@@ -113,11 +153,11 @@ namespace vax.vaxqript {
             return ci.Invoke( args );
         }
 
-        public static object createNew( Type type, object[] args ) {
+        public static object createNew ( Type type, object[] args ) {
             return createNew( type, ( args != null ) ? MiscUtils.toTypes( args ) : MiscUtils.NO_ARGUMENTS_TYPE, args );
         }
 
-        public static object createNew( Type type, ValueList args ) {
+        public static object createNew ( Type type, ValueList args ) {
             return createNew( type, ( args != null ) ? MiscUtils.toTypes( args ) : MiscUtils.NO_ARGUMENTS_TYPE, args.ToArray() );
         }
     }

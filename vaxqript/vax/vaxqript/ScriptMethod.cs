@@ -23,7 +23,7 @@ namespace vax.vaxqript {
             this.holdType = holdType;
         }
 
-        public object exec ( Engine engine, params dynamic[] arguments ) {
+        public dynamic exec ( Engine engine, params dynamic[] arguments ) {
             engine.setIdentifierValue( "$args", arguments ); // TEMP, use proper local vars later on
             return codeBlock.eval( engine );
         }

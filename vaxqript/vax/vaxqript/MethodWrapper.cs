@@ -18,11 +18,11 @@ namespace vax.vaxqript {
             return HoldType;
         }
 
-        public object exec ( Engine engine, params object[] arguments ) {
+        public dynamic exec ( Engine engine, params object[] arguments ) {
             return invokeWith( arguments );
         }
 
-        public object invokeWith ( params object[] arguments ) {
+        public dynamic invokeWith ( params object[] arguments ) {
             return func( arguments );
         }
     }

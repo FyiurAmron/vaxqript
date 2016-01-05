@@ -17,7 +17,7 @@ namespace vax.vaxqript {
             BLOCK_OPEN_CHAR_2 = '(',
             BLOCK_CLOSED_CHAR_1 = '}',
             BLOCK_CLOSED_CHAR_2 = ')',
-            BLOCK_INLINE_CHAR = ';',
+            BLOCK_SEPARATOR_CHAR = ';',
             SEPARATOR_CHAR = ',',
 
             NUMERIC_LITERAL_SEPARATOR = '_';
@@ -84,7 +84,7 @@ namespace vax.vaxqript {
                     QUOTE_CHAR, PARSER_OP_CHAR,
                     BLOCK_OPEN_CHAR_1, BLOCK_OPEN_CHAR_2,
                     BLOCK_CLOSED_CHAR_1, BLOCK_CLOSED_CHAR_2,
-                    BLOCK_INLINE_CHAR, SEPARATOR_CHAR );
+                    BLOCK_SEPARATOR_CHAR, SEPARATOR_CHAR );
                 /*
                 foreach( char c2 in operator_char_list )
                     is_operator[c2] = true;
@@ -355,10 +355,10 @@ namespace vax.vaxqript {
                         pos++;
                         endPos++;
                         return FlowOperator.valueOf( Flow.Up );
-                    case BLOCK_INLINE_CHAR:
+                    case BLOCK_SEPARATOR_CHAR:
                         pos++;
                         endPos++;
-                        return FlowOperator.valueOf( Flow.UpDown );
+                        return FlowOperator.valueOf( Flow.Separator );
                     case SEPARATOR_CHAR:
                         pos++;
                         endPos++;
@@ -376,10 +376,10 @@ namespace vax.vaxqript {
                         pos++;
                         endPos++;
                         return FlowOperator.valueOf( Flow.Up );
-                    case BLOCK_INLINE_CHAR:
+                    case BLOCK_SEPARATOR_CHAR:
                         pos++;
                         endPos++;
-                        return FlowOperator.valueOf( Flow.UpDown );
+                        return FlowOperator.valueOf( Flow.Separator );
                     case COMMENT_CHAR:
                     case QUOTE_CHAR:
                     case PARSER_OP_CHAR:

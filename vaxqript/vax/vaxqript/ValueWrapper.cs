@@ -6,7 +6,7 @@ namespace vax.vaxqript {
     public class ValueWrapper : IWrapper {
         public object Value { get; set; }
 
-        public object eval ( Engine engine ) {
+        public dynamic eval ( Engine engine ) {
             return Value;
         }
 

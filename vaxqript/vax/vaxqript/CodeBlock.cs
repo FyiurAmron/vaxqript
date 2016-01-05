@@ -37,7 +37,7 @@ namespace vax.vaxqript {
                     op = seOp;
                 } else if( !seOp.Equals( op ) ) {
                     throw new InvalidOperationException( "operator '" + op
-                    + "' already present, '" + op + "' not compatible; explicit parentheses required" );
+                        + "' already present, '" + seOp + "' not compatible; explicit parentheses required" );
                 }
             } else {
                 IEvaluable ieva = syntaxElement as IEvaluable;
@@ -102,7 +102,7 @@ namespace vax.vaxqript {
                 j = offset;
                 switch (holdType) {
                 case HoldType.None:
-                    for(; i < realArgCount; i++, j++ ) {
+                    for( ; i < realArgCount; i++, j++ ) {
                         arr[i] = arguments[j].eval( engine );
                     }
                     break;
@@ -119,7 +119,7 @@ namespace vax.vaxqript {
                     }
                     break;
                 case HoldType.All:
-                    for(; i < realArgCount; i++, j++ ) {
+                    for( ; i < realArgCount; i++, j++ ) {
                         arr[i] = arguments[j];
                     }
                     break;
@@ -131,7 +131,7 @@ namespace vax.vaxqript {
                 j = argCount - 1;
                 switch (holdType) {
                 case HoldType.All:
-                    for( ; i < realArgCount; i++, j-- ) {
+                    for(; i < realArgCount; i++, j-- ) {
                         arr[i] = arguments[j];
                     }
                     break;
@@ -148,7 +148,7 @@ namespace vax.vaxqript {
                     }
                     break;
                 case HoldType.None:
-                    for( ; i < realArgCount; i++, j-- ) {
+                    for(; i < realArgCount; i++, j-- ) {
                         arr[i] = arguments[j].eval( engine );
                     }
                     break;
@@ -174,12 +174,12 @@ namespace vax.vaxqript {
             return HoldType.None; // default behaviour - use ScriptMethod wrapper to change it
         }
 
-        public object exec ( Engine engine, params dynamic[] arguments ) {
+        public dynamic exec ( Engine engine, params dynamic[] arguments ) {
             engine.setIdentifierValue( "$args", arguments ); // TEMP, use proper local vars later on
             return eval( engine );
         }
 
-        public object _eval ( Engine engine ) {
+        public dynamic _eval ( Engine engine ) {
             int count = arguments.Count;
             if( op != null ) { // doing this before count check allows nullary (const) operators
                 return op.exec( engine, prepareArguments( engine, 0 ) );
@@ -216,10 +216,10 @@ namespace vax.vaxqript {
             return retList;
         }
 
-        public object eval ( Engine engine ) {
-            engine.increaseStackCount();
+        public dynamic eval ( Engine engine ) {
+            engine.pushCallStack( this );
             object ret = _eval( engine );
-            engine.decreaseStackCount();
+            engine.popCallStack();
             return ret;
         }
     }

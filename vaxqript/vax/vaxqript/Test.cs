@@ -116,37 +116,42 @@ namespace vax.vaxqript {
 
         public static void test2a ( Engine engine ) {
             var sl = new StringLexer( " test; 42 /* blok */ { + ++ += //slowo xlowo3 aaa } .\nslowo xlowo3 aaa.} \"strin\" 123 3.14", engine );
-            Console.WriteLine( sl.createLinearSyntax().debugToString() );
-            Console.WriteLine( "" + sl.createLinearSyntax() );
+            LinearSyntax ls = sl.createLinearSyntax();
+            Console.WriteLine( ls.debugToString() );
+            Console.WriteLine( "" + ls );
+            //Console.WriteLine( "" + ls.buildParseTree() );
         }
 
         public static void test2b ( Engine engine ) {
             var sl = new StringLexer( "for(i=1;i<2;i++) { print(i); }", engine );
-
-            Console.WriteLine( sl.createLinearSyntax().debugToString() );
-            Console.WriteLine( "" + sl.createLinearSyntax() );
+            LinearSyntax ls = sl.createLinearSyntax();
+            CodeBlock cb = ls.buildParseTree();
+            Console.WriteLine( ls.debugToString() );
+            Console.WriteLine( "" + ls );
+            Console.WriteLine( "" + cb );
         }
 
         public static void test3 ( Engine engine ) {
             string[] ss = {
-                "{ + 4 1 { * 3 11 } }",
-                "{ + 4 2 { * 3 3",
-                "{ 4 + 2 + ( 3 * 3 )",
-                "4 + 2 + ( 3 * 3 )",
-                "4 + 2 + ( 3.1 * 3 )",
-                "foo",
+                "{ + 4 1 { * 3 11 } }", // 38
+                "{ + 4 2 { * 3 3", // 15
+                "{ 4 + 2 + ( 3 * 3 )", // 15
+                "4 + 2 + ( 3 * 3 )", // 15
+                "4 + 2 + ( 3.1 * 3 )", // 15.3
+                "foo", // 8
                 "{ 4 + 2 + ( 3.1 * 3 ); 10.5; foo * 2", // note: 'foo' is declared in previous tests!
+                // 15.3,10.5,16
                 @"{
                     i = 3;
                     i++;
-                }",
+                }", // 3, 4
                 @"{
                     i = 3;
                     i = 10;
                     i++;
                     i + 7;
-                }",
-                "testObj1 + 1",
+                }", // 3, 10, 11, 18
+                "testObj1 + 1", // 13
             };
             testRun( ss, engine );
         }

@@ -9,7 +9,7 @@ namespace vax.vaxqript {
     public interface IExecutable : ISyntaxElement, IHoldable {
         // TODO make arguments a IList<dynamic> object, but use a wrapped array implementation for compatibility?
         // sometimes ValueList should be passed as arguments[]...
-        object exec ( Engine engine, params dynamic[] arguments );
+        dynamic exec ( Engine engine, params dynamic[] arguments );
     }
 }
 

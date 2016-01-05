@@ -4,7 +4,7 @@ namespace vax.vaxqript {
     public enum Flow {
         Up,
         Down,
-        UpDown,
+        Separator,
         None // initial/debug value
     }
 }
