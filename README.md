@@ -3,7 +3,7 @@
 TODO:
 
 * import (c#) statement
-* local vars
+* local vars, "function" keyword, function-limited 'return'
 * try-catch
-* else-if
 * deep clone CodeBlock
+* proper automated test suite
