@@ -39,6 +39,7 @@ namespace vax.vaxqript {
                 "i = 0; do { println(i); i--; } while (i>(-10));",
                 "\"> test calls\"",
                 //"$engine.\"globalVarsToString\"()",
+                //"vax.vaxqript.Test.test1a($engine)"
                 "(\"vax.vaxqript.Test\"?).testMethod()",
                 "vax.vaxqript.Test.testMethod()",
                 "evi := (if(i>10)2 else if(i>5)1 else 0)",
@@ -47,9 +48,12 @@ namespace vax.vaxqript {
                 "for(i = 0; i < 100; i++ ) {if(i>13){return 42}}",
                 "i",
                 "@(i=13)",
-                "i--;while(i<9001){if(i>41){break}; i+=2}",
-                "i"
-                //"vax.vaxqript.Test.test1a($engine)"
+                "i--;while(i>(-9001)){if(i<(-41)){break}; i-=2}",
+                "i",
+                "i=0;do{i++;if(i>600){break 665}} while(true)",
+                "i",
+                "f:=(z=($args[0]);z*z)",
+                "f(111)"
             };
 
             Test.testRun( inputs, engine );

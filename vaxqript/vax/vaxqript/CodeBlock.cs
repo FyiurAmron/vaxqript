@@ -2,8 +2,7 @@
 using System.Collections.Generic;
 
 namespace vax.vaxqript {
-    public class CodeBlock : IEvaluable {
-        /*, IExecutable*/
+    public class CodeBlock : IEvaluable, IExecutable {
         private List<IEvaluable> arguments = new List<IEvaluable>();
         private Operator op;
         private IExecutable idExec;
