@@ -55,7 +55,7 @@ namespace vax.vaxqript {
         public Lexer () {
             //SC_operator[] values = SC_operator.values();
             //SC_HashSet<Character> operator_char_list = new SC_HashSet.linked<>( values.length );
-            char[] op_char_arr; // TODO: implement maybe?
+            //char[] op_char_arr; // TODO: implement maybe?
             int i, max;
             char c;
             /*

@@ -42,20 +42,20 @@ namespace vax.vaxqript {
                 "(\"vax.vaxqript.Test\"?).testMethod()",
                 "vax.vaxqript.Test.testMethod()",
                 "evi := (if(i>10)2 else if(i>5)1 else 0)",
-                ":: {i=12;evi} {i=6;evi} {i=2;evi}"
+                ":: {i=12;evi} {i=6;evi} {i=2;evi}",
+                "throw (new System.Exception(\"test exception ^_^\"))",
+                "for(i = 0; i < 100; i++ ) {if(i>13){return 42}}",
+                "i",
+                "@(i=13)",
+                "i--;while(i<9001){if(i>41){break}; i+=2}",
+                "i"
                 //"vax.vaxqript.Test.test1a($engine)"
             };
 
             Test.testRun( inputs, engine );
 
             Console.WriteLine( "=== READ-EVAL-PRINT LOOP ===" );
-            for( string line = Console.ReadLine(); line != null && line.Length != 0; line = Console.ReadLine() ) {
-                try {
-                    Console.WriteLine( ">>> " + MiscUtils.toString( engine.eval( line ) ) );
-                } catch (Exception ex) {
-                    Console.WriteLine( Test.exceptionToString( ex ) );
-                }
-            }
+            engine.loop();
         }
     }
 }

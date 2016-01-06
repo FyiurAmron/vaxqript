@@ -14,8 +14,19 @@ namespace vax.vaxqript {
         public MiscUtils () {
         }
         */
-        public static int getCurrentTimeMillis() {
+        public static int getCurrentTimeMillis () {
             return Environment.TickCount;
+        }
+
+        public static object unwrap ( params object[] arguments ) {
+            switch (arguments.Length) {
+            case 0:
+                return null;
+            case 1:
+                return arguments[0];
+            default:
+                return arguments;
+            }
         }
 
         public static object getRandomForType ( Type t ) {

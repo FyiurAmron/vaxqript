@@ -69,6 +69,10 @@
     <Compile Include="vax\vaxqript\Test.cs" />
     <Compile Include="vax\vaxqript\SyntaxFlow.cs" />
     <Compile Include="vax\vaxqript\SyntaxFlowOperator.cs" />
+    <Compile Include="vax\vaxqript\IExecutionFlow.cs" />
+    <Compile Include="vax\vaxqript\ExecutionBreak.cs" />
+    <Compile Include="vax\vaxqript\ExecutionReturn.cs" />
+    <Compile Include="vax\vaxqript\ScriptReturnException.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

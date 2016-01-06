@@ -175,7 +175,7 @@ namespace vax.vaxqript {
         }
 
         public dynamic exec ( Engine engine, params dynamic[] arguments ) {
-            engine.setIdentifierValue( "$args", arguments ); // TEMP, use proper local vars later on
+            engine.setFunctionArguments( arguments );
             return eval( engine );
         }
 
@@ -207,12 +207,10 @@ namespace vax.vaxqript {
                 }
             }
 
-            /*
-            ValueList retList = new ValueList( count );
-            retList.Add( o );
-            */
             for( int i = 1; i < count; i++ ) {
-                //retList.Add( arguments[i].eval( engine ) );
+                if ( o is IExecutionFlow ) {
+                    return o;
+                }
                 o = arguments[i].eval( engine );
             }
             return o;

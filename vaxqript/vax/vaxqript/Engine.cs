@@ -15,8 +15,10 @@ namespace vax.vaxqript {
 
         public UndefinedVariableBehaviour UndefinedVariableBehaviour { get; set; }
 
-        public Identifier UndefinedIdentifier { get; private set; } /* = new Identifier("new");*/
+        public Identifier UndefinedIdentifier { get; private set; } /* = new Identifier("undefined");*/
         public Identifier NewIdentifier { get; private set; } /* = new Identifier("new");*/
+        public Identifier ArgumentsIdentifier { get; private set; } /* = new Identifier("$args");*/
+        public Identifier PromptIdentifier { get; private set; } /* = new Identifier("$prompt");*/
         private ValueWrapper undefinedValue = new ValueWrapper( Undefined.INSTANCE );
 
         //private Stack<ISyntaxElement> callStack = new Stack<ISyntaxElement>();
@@ -24,12 +26,19 @@ namespace vax.vaxqript {
 
         public int StackLimit { get; set; }
 
+        public bool RethrowExceptions { get; set; }
+
         public Engine () {
             UndefinedIdentifier = new Identifier( "undefined" );
             NewIdentifier = new Identifier( "new" );
+            ArgumentsIdentifier = new Identifier( "$args" );
+            PromptIdentifier = new Identifier( "$prompt" );
             //UndefinedVariableBehaviour = UndefinedVariableBehaviour.ReturnRawNull;
             UndefinedVariableBehaviour = UndefinedVariableBehaviour.ThrowException;
             StackLimit = 4096;
+            RethrowExceptions = true;
+
+
             createDefaultVariables();
             createDefaultOperators();
         }
@@ -154,10 +163,20 @@ namespace vax.vaxqript {
             }
         }
 
+        public void setFunctionArguments( params dynamic[] arguments ) {
+            setIdentifierValue( ArgumentsIdentifier, arguments ); // TEMP use proper local var later on
+        }
+
+        public string getPrompt() {
+            return (string) getIdentifierValueRaw( PromptIdentifier );
+        }
+
         protected void createDefaultVariables () {
             if( UndefinedVariableBehaviour == UndefinedVariableBehaviour.ReturnUndefined ) {
                 setIdentifierValueConstant( UndefinedIdentifier, Undefined.INSTANCE );
             }
+
+            setIdentifierValue( PromptIdentifier, "> " );
 
             setIdentifierValueConstant( NewIdentifier, new MethodWrapper( (objs ) => {
                 if ( objs.Length == 0 )
@@ -186,7 +205,7 @@ namespace vax.vaxqript {
             Dictionary<string,object> defaultVarsMap = new Dictionary<string,object> {
                 //// common identifiers
                 // value-type (literal) default vars
-                { "null",null },
+                { "null", null },
                 { "true", true },
                 { "false", false },
                 { "Infinity", float.PositiveInfinity },
@@ -208,24 +227,30 @@ namespace vax.vaxqript {
                 //// script identifiers
                 { "$engine", this },
                 { "$ret", retVal },
-                 //$args[]
-                        //// basic syntax
-                        // method-type (delegate) default vars
+                //// basic syntax
+                // method-type (delegate) default vars
                 // maybe todo switch?
-            { "for", new MethodWrapper( (objs ) => { // TODO implement 'else'
+                { "for", new MethodWrapper( (objs ) => {
                     ensureArgCount( "for", 2, objs);
                     CodeBlock cb = objs[0] as CodeBlock;
                     List<IEvaluable> list = cb.getArgumentList();
-                IEvaluable //
-                    init = list[0] as IEvaluable,
-                condition = list[1] as IEvaluable,
-                step = list[2]as IEvaluable,
-                body = objs[1] as IEvaluable;
-                for( init.eval( this ); ( condition.eval( this ) as bool? ) ?? false; step.eval( this ) ) {
-                    body.eval( this );
-                }
-                return null; // TODO implement 'return' as loop breaker here
-                                            }, HoldType.All ) },
+                    IEvaluable //
+                        init = list[0] as IEvaluable,
+                        condition = list[1] as IEvaluable,
+                        step = list[2]as IEvaluable,
+                        body = objs[1] as IEvaluable;
+                    object ret;
+                    IExecutionFlow ef;
+
+                    for( init.eval( this ); ( condition.eval( this ) as bool? ) ?? false; step.eval( this ) ) {
+                        ret = body.eval( this );
+                        ef = ret as IExecutionFlow;
+                        if ( ef != null ) {
+                            return ef.getLoopValue();
+                        }
+                    }
+                    return null;
+                }, HoldType.All ) },
                 // "while" is a bit further in this method
                 { "do", new MethodWrapper( (objs ) => {
                     ensureArgCount( "do", 3, objs);
@@ -238,25 +263,44 @@ namespace vax.vaxqript {
                     body = objs[0] as IEvaluable,
                     condition = objs[2] as IEvaluable;
 
+                    object ret;
+                    IExecutionFlow ef;
+
                     do {
-                        body.eval( this ); // return is ignored here
+                        ret = body.eval( this );
+                        ef = ret as IExecutionFlow;
+                        if ( ef != null ) {
+                            return ef.getLoopValue();
+                        }
                     } while ( ( condition.eval( this ) as bool? ) ?? false );
-                    return null; // TODO implement 'return' as loop breaker here
+                    return null;
                 }, HoldType.All ) },
-            //// utility methods
-            { "print", new MethodWrapper( (objs ) => {
-                foreach( object o in objs ) {
-                    Console.Write( ( o == null ) ? "null" : o );
-                }
-                return null;
-                                                } ) },
-            { "println", new MethodWrapper( (objs ) => {
-                foreach( object o in objs ) {
-                    Console.WriteLine( ( o == null ) ? "null" : o );
-                }
-                return null;
-                                                } ) },
-                                                    };
+                { "break", new MethodWrapper(
+                    (objs) => new ExecutionBreak( MiscUtils.unwrap(objs) ) )
+                },
+                { "return", new MethodWrapper(
+                    (objs) => new ExecutionReturn( MiscUtils.unwrap(objs) ) )
+                },
+                { "exit", new MethodWrapper( (objs) => {
+                    throw new ScriptExitException( MiscUtils.unwrap(objs) );
+                } ) },
+                { "throw", new MethodWrapper( (objs) => {
+                    throw (Exception) objs[0];
+                } ) },
+                //// utility methods
+                { "print", new MethodWrapper( (objs ) => {
+                    foreach( object o in objs ) {
+                        Console.Write( ( o == null ) ? "null" : o );
+                    }
+                    return null;
+                } ) },
+                { "println", new MethodWrapper( (objs ) => {
+                    foreach( object o in objs ) {
+                        Console.WriteLine( ( o == null ) ? "null" : o );
+                    }
+                    return null;
+                } ) },
+                };
             // note: by default, with 'func(arg0,arg1...)' syntax, obj[0] contains *all* arguments passed, wrapped as a CodeBlock;
             // to pass the arguments *directly*, use 'func arg0 arg1'
             // - this is *strictly* required for composite (multi-block) methods (like 'for', 'while' etc) to work at all!
@@ -289,17 +333,23 @@ namespace vax.vaxqript {
                 IEvaluable //
                 condition = objs[0] as IEvaluable,
                 body = objs[1] as IEvaluable;
+
+                object ret;
+                IExecutionFlow ef;
+
                 while( ( condition.eval( this ) as bool? ) ?? false ) {
-                    body.eval( this ); // return is ignored here
+                    ret = body.eval( this );
+                    ef = ret as IExecutionFlow;
+                    if ( ef != null ) {
+                         return ef.getLoopValue();
+                    }
                 }
-                return null; // TODO implement 'return' as loop breaker here
+                return null;
             }, HoldType.All ));
 
-
-
-                                                    foreach( KeyValuePair<string, object> entry in defaultVarsMap ) {
+            foreach( KeyValuePair<string, object> entry in defaultVarsMap ) {
                 setIdentifierValueConstant(entry.Key, entry.Value);
-                                                    }
+            }
         }
 
         private Func<dynamic,dynamic> lambda2 ( Func<dynamic,dynamic> func ) {
@@ -656,6 +706,10 @@ namespace vax.vaxqript {
         */
 
         protected object wrapRetVal ( object ret ) {
+            ExecutionReturn er = ret as ExecutionReturn;
+            if ( er != null ) {
+                ret = er.getValue();
+            }
             ValueWrapper vw = ret as ValueWrapper;
             retVal.Value = ( vw != null ) ? vw.Value : ret;
             return ret;
@@ -675,12 +729,34 @@ namespace vax.vaxqript {
 
         public object eval ( IEvaluable iEvaluable ) {
             callStack.Clear();
-            return wrapRetVal( iEvaluable.eval( this ) );
+            object ret;
+            try {
+                ret = iEvaluable.eval( this );
+            } catch ( ScriptExitException ex ) {
+                ret = ex.ReturnValue;
+            } catch ( Exception ex ) {
+                ret = ex;
+                if( RethrowExceptions ) {
+                    throw ex;
+                }
+            }
+            return wrapRetVal( ret );
         }
 
         public object exec ( IExecutable iExecutable, params dynamic[] arguments ) {
             callStack.Clear();
-            return wrapRetVal( iExecutable.exec( this, arguments ) );
+            object ret;
+            try {
+                ret = iExecutable.exec( this, arguments );
+            } catch ( ScriptExitException ex ) {
+                ret = ex.ReturnValue;
+            } catch ( Exception ex ) {
+                ret = ex;
+                if( RethrowExceptions ) {
+                    throw ex;
+                }
+            }
+            return wrapRetVal( ret );
         }
 
         /**
@@ -697,6 +773,18 @@ namespace vax.vaxqript {
             }
             //Console.WriteLine( string.Join<ISyntaxElement>( ",", ises ) ); // in case of debug
             return new CodeBlock( ises ).eval( this );
+        }
+
+        public void loop() {
+            Console.Write( getPrompt() );
+            for( string line = Console.ReadLine(); line != null && line.Length != 0; line = Console.ReadLine() ) {
+                try {
+                    Console.WriteLine( MiscUtils.toString( eval( line ) ) );
+                } catch (Exception ex) {
+                    Console.WriteLine( Test.exceptionToString( ex ) );
+                }
+                Console.Write( getPrompt() );
+            }
         }
     }
 }

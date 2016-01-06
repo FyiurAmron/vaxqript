@@ -155,8 +155,9 @@ namespace vax.vaxqript {
                 }", // 18
                 "testObj1 + 1", // 13
                 "@(vars = ($engine.globalVarsToString()))",
+                "loops = 100_000",
                 "start = (vax.vaxqript.MiscUtils.getCurrentTimeMillis());" +
-                "for(i=0;i<1_000_000;i++){};" +
+                "for(i=0;i<loops;i++){};" +
                 "stop = (vax.vaxqript.MiscUtils.getCurrentTimeMillis());" +
                 "stop-start"
             };
