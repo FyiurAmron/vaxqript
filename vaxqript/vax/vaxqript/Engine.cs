@@ -17,6 +17,7 @@ namespace vax.vaxqript {
 
         public Identifier UndefinedIdentifier { get; private set; } /* = new Identifier("undefined");*/
         public Identifier NewIdentifier { get; private set; } /* = new Identifier("new");*/
+        public Identifier ExceptionIdentifier { get; private set; } /* = new Identifier("$ex");*/
         public Identifier ArgumentsIdentifier { get; private set; } /* = new Identifier("$args");*/
         public Identifier PromptIdentifier { get; private set; } /* = new Identifier("$prompt");*/
         private ValueWrapper undefinedValue = new ValueWrapper( Undefined.INSTANCE );
@@ -31,6 +32,7 @@ namespace vax.vaxqript {
         public Engine () {
             UndefinedIdentifier = new Identifier( "undefined" );
             NewIdentifier = new Identifier( "new" );
+            ExceptionIdentifier = new Identifier( "$ex" );
             ArgumentsIdentifier = new Identifier( "$args" );
             PromptIdentifier = new Identifier( "$prompt" );
             //UndefinedVariableBehaviour = UndefinedVariableBehaviour.ReturnRawNull;
@@ -163,6 +165,19 @@ namespace vax.vaxqript {
             }
         }
 
+        private void ensureArg( string blockName, object existingObj, Identifier assertedId ) {
+            if ( !assertedId.Equals( existingObj )) {
+                throw new InvalidOperationException("'"+assertedId + " ' expected in '"+blockName+"' block; found '" + existingObj + "' instead");
+            }
+        }
+
+        private void ensureBlockSeparator( string blockName, object existingObj) {
+            if ( existingObj != BlockSeparator.Instance ) {
+                throw new InvalidOperationException("'"+BlockSeparator.Instance
+                    + " ' expected in "+blockName+" block; found '" + existingObj + "' instead");
+            }
+        }
+
         public void setFunctionArguments( params dynamic[] arguments ) {
             setIdentifierValue( ArgumentsIdentifier, arguments ); // TEMP use proper local var later on
         }
@@ -198,7 +213,9 @@ namespace vax.vaxqript {
             Identifier //
                 whileId = new Identifier( "while" ),
                 ifId = new Identifier( "if" ),
-                elseId = new Identifier( "else" );
+                elseId = new Identifier( "else" ),
+                catchId = new Identifier( "catch" ),
+                finallyId = new Identifier( "finally" );
 
 
             // note: below code fails to autoformat properly in Xamarin Studio IDE
@@ -230,23 +247,88 @@ namespace vax.vaxqript {
                 //// basic syntax
                 // method-type (delegate) default vars
                 // maybe todo switch?
+                { "breakpoint", new MethodWrapper( (objs) => {
+                    return null; // note: place breakpoint here when debugging
+                } ) },
+                { "delete", new MethodWrapper((objs)=>{
+                    Identifier id = objs[0] as Identifier;
+                    if ( id != null ) {
+                        removeIdentifier( id );
+                        return null;
+                    }
+                    IEvaluable iEva = objs[0] as IEvaluable;
+                    object o = objs[0];
+                    if ( iEva != null ) {
+                        o = iEva.eval(this);
+                        string s = o as string;
+                        if ( s != null ) {
+                            removeIdentifier( s );
+                            return null;
+                        }
+                    }
+                    throw new InvalidOperationException("'delete' called with invalid parameter '"+o+"'");
+                }, HoldType.All)},
                 { "for", new MethodWrapper( (objs ) => {
                     ensureArgCount( "for", 2, objs);
                     CodeBlock cb = objs[0] as CodeBlock;
-                    List<IEvaluable> list = cb.getArgumentList();
-                    IEvaluable //
-                        init = list[0] as IEvaluable,
-                        condition = list[1] as IEvaluable,
-                        step = list[2]as IEvaluable,
-                        body = objs[1] as IEvaluable;
-                    object ret;
+                    List<IEvaluable> forList = cb.getArgumentList();
+                    IEvaluable body = objs[1] as IEvaluable, init = null, condition = null, step = null;
+
+                    int i = 1;
+                    if ( !(forList[0] is BlockSeparator) ) {
+                        init = forList[0] as IEvaluable;
+                        //i++; // already calc'ed into i
+                        ensureBlockSeparator("for", forList[1]);
+                        i++;
+                    }
+                    if ( !(forList[i] is BlockSeparator) ) {
+                        condition = forList[i] as IEvaluable;
+                        i++;
+                        ensureBlockSeparator("for", forList[i]);
+                    }
+                    i++;
+                    step = forList[i] as IEvaluable;
+
                     IExecutionFlow ef;
 
-                    for( init.eval( this ); ( condition.eval( this ) as bool? ) ?? false; step.eval( this ) ) {
-                        ret = body.eval( this );
-                        ef = ret as IExecutionFlow;
-                        if ( ef != null ) {
-                            return ef.getLoopValue();
+                    if ( init != null ) {
+                        init.eval( this );
+                    }
+                    // minor optimiziations for tight loops follow; note that the loop is actually *expected* to have some body here
+                    if ( condition == null ) {
+                        if ( step == null ) { // rare case
+                            while( true ) {
+                                ef = body.eval( this ) as IExecutionFlow;
+                                if ( ef != null ) {
+                                    return ef.getLoopValue();
+                                }
+                            }
+                        } // else
+                        while( true ) {
+                            ef = body.eval( this ) as IExecutionFlow;
+                            if ( ef != null ) {
+                                return ef.getLoopValue();
+                            }
+                            if ( step != null ) {
+                                step.eval( this );
+                            }
+                        }
+                    } // else 
+
+                    if ( step == null ) {
+                        while( ( condition.eval( this ) as bool? ) ?? false ) {
+                            ef = body.eval( this ) as IExecutionFlow;
+                            if ( ef != null ) {
+                                return ef.getLoopValue();
+                            }
+                        }                        
+                    } else {
+                        while( ( condition.eval( this ) as bool? ) ?? false ) {
+                            ef = body.eval( this ) as IExecutionFlow;
+                            if ( ef != null ) {
+                                return ef.getLoopValue();
+                            }
+                            step.eval( this );
                         }
                     }
                     return null;
@@ -254,10 +336,7 @@ namespace vax.vaxqript {
                 // "while" is a bit further in this method
                 { "do", new MethodWrapper( (objs ) => {
                     ensureArgCount( "do", 3, objs);
-
-                    if ( !whileId.Equals( objs[1] )) {
-                        throw new InvalidOperationException("'"+whileId.Name + " ' expected in 'do' block; found '" + objs[1] + "' instead");
-                    }
+                    ensureArg( "do", objs[1], whileId );
 
                     IEvaluable //
                     body = objs[0] as IEvaluable,
@@ -265,14 +344,24 @@ namespace vax.vaxqript {
 
                     object ret;
                     IExecutionFlow ef;
-
-                    do {
-                        ret = body.eval( this );
-                        ef = ret as IExecutionFlow;
-                        if ( ef != null ) {
-                            return ef.getLoopValue();
+                    CodeBlock cb = condition as CodeBlock;
+                    if ( cb != null && cb.isEmpty() ) {
+                        while(true) {
+                            ret = body.eval( this );
+                            ef = ret as IExecutionFlow;
+                            if ( ef != null ) {
+                                return ef.getLoopValue();
+                            }
                         }
-                    } while ( ( condition.eval( this ) as bool? ) ?? false );
+                    } // else
+
+                        do {
+                            ret = body.eval( this );
+                            ef = ret as IExecutionFlow;
+                            if ( ef != null ) {
+                                return ef.getLoopValue();
+                            }
+                        } while ( ( condition.eval( this ) as bool? ) ?? false );
                     return null;
                 }, HoldType.All ) },
                 { "break", new MethodWrapper(
@@ -287,6 +376,122 @@ namespace vax.vaxqript {
                 { "throw", new MethodWrapper( (objs) => {
                     throw (Exception) objs[0];
                 } ) },
+                { "try", new MethodWrapper( (objs) => {
+                    ensureArgCount( "try", 1, objs);
+                    IEvaluable body = objs[0] as IEvaluable, catcher, finaller;
+                    CodeBlock exceptionMask;
+                    List<IEvaluable> exceptionMaskList;
+                    Type exceptionMaskType;
+                    Identifier exceptionIdentifier;
+                    Type exType;
+
+                    switch( objs.Length ) {
+                    case 1:
+                        try {
+                            return body.eval(this);
+                        } catch ( Exception ex ) {
+                            return ex;
+                        }
+                    case 3:
+                        
+                        Identifier id = objs[1] as Identifier;
+                        if ( catchId.Equals(id)) {
+                            catcher = objs[2] as IEvaluable;
+                            try {
+                                return body.eval(this);
+                            } catch ( Exception ex ) {
+                                setIdentifierValue(ExceptionIdentifier, ex );
+                                return catcher.eval(this);
+                            }
+                        } else if ( finallyId.Equals(id)) {
+                            finaller = objs[2] as IEvaluable;
+                            try {
+                                return body.eval(this);
+                            } finally {
+                                finaller.eval(this);
+                            }
+                        }
+                        throw new InvalidOperationException("'catch' or 'finally' expected in 'try' block; found '" + objs[1] + "' instead");
+                    case 4:
+                        ensureArg( "try", objs[1], catchId );
+                        exceptionMask = objs[2] as CodeBlock;
+                        if ( exceptionMask == null ) {
+                            throw new InvalidOperationException("exception mask CodeBlock expected in 'try' block; found '"+objs[2]+"' instead");
+                        }
+                        exceptionMaskList = exceptionMask.getArgumentList();
+                        int index = exceptionMaskList.Count - 1;
+                        exceptionIdentifier = exceptionMaskList[index] as Identifier;
+                        if ( exceptionIdentifier == null ) {
+                            throw new InvalidOperationException("exception identifier expected in 'catch' block; found '"+exceptionMaskList[1]+"' instead");
+                        }
+                        exceptionMaskList.RemoveAt(index);
+                        exType = MiscUtils.getTypeFor( exceptionMask.eval(this) );
+                        if ( exType == null ) {
+                            throw new InvalidOperationException("unknown exception Type '"+exceptionMaskList+"in 'catch' block");
+                        }
+                        exceptionMaskList.Add(exceptionIdentifier);
+                            
+                        catcher = objs[3] as IEvaluable;
+                        try {
+                            return body.eval(this);
+                        } catch ( Exception ex ) {
+                            Type t = ex.GetType();
+                            if ( t.IsSubclassOf(exType) || t == exType ) {
+                                setIdentifierValue(exceptionIdentifier, ex );
+                                return catcher.eval(this);
+                            }
+                            throw ex;
+                        }
+                    case 5:
+                        ensureArg( "try", objs[1], catchId );
+
+                        catcher = objs[2] as IEvaluable;
+                        ensureArg( "try", objs[3], finallyId );
+                        finaller = objs[4] as IEvaluable;
+
+                        try {
+                            return body.eval(this);
+                        } catch ( Exception ex ) {
+                            setIdentifierValue(ExceptionIdentifier, ex );
+                            return catcher.eval(this);
+                        } finally {
+                            finaller.eval(this);
+                        }
+                    case 6:
+                        ensureArg( "try", objs[1], catchId );
+                        exceptionMask = objs[2] as CodeBlock;
+                        if ( exceptionMask == null ) {
+                            throw new InvalidOperationException("exception mask CodeBlock expected in 'try' block; found '"+objs[2]+"' instead");
+                        }
+                        exceptionMaskList = exceptionMask.getArgumentList();
+                        exType = MiscUtils.getTypeFor( exceptionMaskList[0] );
+                        if ( exType == null ) {
+                            throw new InvalidOperationException("unknown exception Type '"+exceptionMaskList[0]+"in 'catch' block");
+                        }
+                        exceptionIdentifier = exceptionMaskList[1] as Identifier;
+                        if ( exceptionIdentifier == null ) {
+                            throw new InvalidOperationException("exception identifier expected in 'catch' block; found '"+exceptionMaskList[1]+"' instead");
+                        }
+
+                        catcher = objs[3] as IEvaluable;
+                        ensureArg( "try", objs[4], finallyId );
+                        finaller = objs[5] as IEvaluable;
+
+                        try {
+                            return body.eval(this);
+                        } catch ( Exception ex ) {
+                            Type t = ex.GetType();
+                            if ( t.IsSubclassOf(exType) || t == exType ) {
+                                setIdentifierValue(exceptionIdentifier, ex );
+                                return catcher.eval(this);
+                            }
+                            throw ex;
+                        } finally {
+                            finaller.eval(this);
+                        }
+                    }
+                    throw new InvalidOperationException("mismatched amount of arguments (found "+objs.Length+"; expected 1, 3, 4, 5 or 6) in 'try' block");
+                }, HoldType.All ) },
                 //// utility methods
                 { "print", new MethodWrapper( (objs ) => {
                     foreach( object o in objs ) {
@@ -315,15 +520,13 @@ namespace vax.vaxqript {
                     i += 2;
                     if ( i >= len )
                         return null;
-                    if ( !elseId.Equals( objs[i] )) {
-                        throw new InvalidOperationException("'"+elseId.Name + " ' expected in 'if' block; found '" + objs[i] + "' instead");
-                    }
+                    ensureArg( "if", objs[i], elseId );
                     if ( hasLoneElse ) {
                         if ( i + 2 == len ) {
                             return ((IEvaluable)objs[i+1]).eval(this);
                         }
-                    } else if ( !ifId.Equals( objs[i+1] )) {
-                        throw new InvalidOperationException("'"+ifId.Name + " ' expected in 'if' block; found '" + objs[i+1] + "' instead");
+                    } else {
+                        ensureArg( "if", objs[i+1], ifId );
                     }
                 }
                 return null;

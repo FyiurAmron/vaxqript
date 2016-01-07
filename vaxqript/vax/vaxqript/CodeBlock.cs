@@ -36,12 +36,13 @@ namespace vax.vaxqript {
                     op = seOp;
                 } else if( !seOp.Equals( op ) ) {
                     throw new InvalidOperationException( "operator '" + op
-                        + "' already present, '" + seOp + "' not compatible; explicit parentheses required" );
+                    + "' already present, '" + seOp + "' not compatible; explicit parentheses required" );
                 }
             } else {
                 IEvaluable ieva = syntaxElement as IEvaluable;
                 if( ieva == null ) {
-                    throw new NotSupportedException( "unsupported syntax element type '" + syntaxElement.GetType() + "' (neither IEvaluable nor Operator)" );
+                    throw new NotSupportedException( "unsupported syntax element type '"
+                    + syntaxElement.GetType() + "' (neither IEvaluable, Operator nor BlockSeparator)" );
                 }
                 arguments.Add( ieva );
             }
@@ -101,25 +102,45 @@ namespace vax.vaxqript {
                 j = offset;
                 switch (holdType) {
                 case HoldType.None:
-                    for( ; i < realArgCount; i++, j++ ) {
+                    for(; i < realArgCount; i++, j++ ) {
                         arr[i] = arguments[j].eval( engine );
+                        /*
+                        if( arr[i] is BlockSeparator ) {
+                            return arr;
+                        }
+                        */
                     }
                     break;
                 case HoldType.First:
                     arr[0] = arguments[j];
                     for( i++, j++; i < realArgCount; i++, j++ ) {
                         arr[i] = arguments[j].eval( engine );
+                        /*
+                        if( arr[i] is BlockSeparator ) {
+                            return arr;
+                        }
+                        */
                     }
                     break;
                 case HoldType.AllButFirst:
                     arr[0] = arguments[j].eval( engine );
                     for( i++, j++; i < realArgCount; i++, j++ ) {
                         arr[i] = arguments[j];
+                        /*
+                        if( arr[i] is BlockSeparator ) {
+                            return arr;
+                        }
+                        */
                     }
                     break;
                 case HoldType.All:
-                    for( ; i < realArgCount; i++, j++ ) {
+                    for(; i < realArgCount; i++, j++ ) {
                         arr[i] = arguments[j];
+                        /*
+                        if( arr[i] is BlockSeparator ) {
+                            return arr;
+                        }
+                        */
                     }
                     break;
                 default:
@@ -130,25 +151,44 @@ namespace vax.vaxqript {
                 j = argCount - 1;
                 switch (holdType) {
                 case HoldType.All:
-                    for(; i < realArgCount; i++, j-- ) {
+                    for( ; i < realArgCount; i++, j-- ) {
                         arr[i] = arguments[j];
+                        /*
+                        if( arr[i] is BlockSeparator ) {
+                            return arr;
+                        }
+                        */
                     }
                     break;
                 case HoldType.AllButFirst:
                     arr[0] = arguments[j].eval( engine );
                     for( i++,j--; i < realArgCount; i++, j-- ) {
                         arr[i] = arguments[j];
+                        /*
+                        if( arr[i] is BlockSeparator ) {
+                            return arr;
+                        }
+                        */
                     }
                     break;
                 case HoldType.First:
                     arr[0] = arguments[j];
                     for( i++,j--; i < realArgCount; i++, j-- ) {
                         arr[i] = arguments[j].eval( engine );
-                    }
+                        /*
+                        if( arr[i] is BlockSeparator ) {
+                            return arr;
+                        }
+                        */                    }
                     break;
                 case HoldType.None:
-                    for(; i < realArgCount; i++, j-- ) {
+                    for( ; i < realArgCount; i++, j-- ) {
                         arr[i] = arguments[j].eval( engine );
+                        /*
+                        if( arr[i] is BlockSeparator ) {
+                            return arr;
+                        }
+                        */
                     }
                     break;
                 default:
@@ -187,27 +227,53 @@ namespace vax.vaxqript {
                 return null;
             } 
             Identifier id = arguments[0] as Identifier;
+            object o = null; // actually, the assignment is unneeded, but c# is too stupid to know that
+            bool preEval = false;
+
             if( id != null ) {
                 ValueWrapper vw = engine.getIdentifierValue( id );
                 if( vw != null ) {
-                    idExec = vw.Value as IExecutable;
-                    if( idExec != null ) {
+                    if( count == 1 ) {
+                        IEvaluable iEva = vw.Value as IEvaluable;
+                        if( iEva != null ) {
+                            return iEva.eval( engine );
+                        }
+                    } else {
+                        if( arguments[1] is BlockSeparator ) {
+                            IEvaluable iEva = vw.Value as IEvaluable;
+                            if( iEva != null ) {
+                                o = iEva.eval( engine );
+                                preEval = true;
+                            }
+                        } else {
+                            idExec = vw.Value as IExecutable;
+                            if( idExec != null ) {
+                                return idExec.exec( engine, prepareArguments( engine, 1 ) );
+                            }
+                        }
+                    }
+                }
+            }
+
+            if( !preEval )
+                o = arguments[0].eval( engine );
+            CompositeIdentifier cid = o as CompositeIdentifier;
+
+            if( cid != null ) {
+                if( count == 1 ) {
+                    return cid.eval( engine );
+                } else {
+                    if( arguments[1] is BlockSeparator ) {
+                        o = cid.eval( engine );
+                    } else {
+                        idExec = cid;
                         return idExec.exec( engine, prepareArguments( engine, 1 ) );
                     }
                 }
             }
-            object o = arguments[0].eval( engine );
-
-            if( count > 1 ) {
-                CompositeIdentifier cid = o as CompositeIdentifier;
-                if( cid != null ) {
-                    idExec = cid;
-                    return idExec.exec( engine, prepareArguments( engine, 1 ) );
-                }
-            }
 
             for( int i = 1; i < count; i++ ) {
-                if ( o is IExecutionFlow ) {
+                if( o is IExecutionFlow ) {
                     return o;
                 }
                 o = arguments[i].eval( engine );

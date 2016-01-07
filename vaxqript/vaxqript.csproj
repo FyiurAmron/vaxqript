@@ -73,6 +73,7 @@
     <Compile Include="vax\vaxqript\ExecutionBreak.cs" />
     <Compile Include="vax\vaxqript\ExecutionReturn.cs" />
     <Compile Include="vax\vaxqript\ScriptReturnException.cs" />
+    <Compile Include="vax\vaxqript\BlockSeparator.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

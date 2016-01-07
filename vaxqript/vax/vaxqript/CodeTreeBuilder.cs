@@ -69,15 +69,15 @@ namespace vax.vaxqript {
         private void _separator () {
             CodeBlock child = currentCodeBlock;
             _up();
-            if( hasSeparator ) {
-                _down();
-            } else {
+
+            if( !hasSeparator ) {
                 _back();
                 _down();
                 currentCodeBlock.add( child );
                 hasSeparator = true;
-                _down();
             }
+            currentCodeBlock.add( BlockSeparator.Instance );
+            _down();
         }
 
         private void _up () {

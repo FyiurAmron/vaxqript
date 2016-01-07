@@ -3,11 +3,13 @@ using System.Collections.Generic;
 
 namespace vax.vaxqript {
     public static class Test {
+        public static readonly int testField = 991;
+
         public static string exceptionToString ( Exception ex ) {
             return ">>> EXCEPTION: " + ex.GetType() + ":\n>>> " + ex.Message;
         }
 
-        public static string testMethod() {
+        public static string testMethod () {
             return "test complete!";
         }
 
@@ -28,7 +30,7 @@ namespace vax.vaxqript {
                 Console.WriteLine( MiscUtils.toString( ret ) );
                 return ret;
             } catch (Exception ex) {
-                Console.WriteLine( exceptionToString(ex) );
+                Console.WriteLine( exceptionToString( ex ) );
                 return null;
             }
         }
@@ -90,7 +92,7 @@ namespace vax.vaxqript {
 
             operatorTest( engine, (eng ) => {
                 return "" + engine.debugApplyStringOperator( "||", engine.debugApplyStringOperator( "&&", true, false ), false )
-                    + '\n' + engine.debugApplyStringOperator( "||", engine.debugApplyStringOperator( "&&", true, true ), false );
+                + '\n' + engine.debugApplyStringOperator( "||", engine.debugApplyStringOperator( "&&", true, true ), false );
             } );
 
             operatorTest( engine, "'", fooI );
@@ -132,11 +134,12 @@ namespace vax.vaxqript {
         }
 
         public static void test3 ( Engine engine ) {
+            setupTestArrays( engine );
             string[] ss = {
                 "{ + 4 1 { * 3 11 } }", // 38
                 "{ + 4 2 { * 3 3", // 15
                 "{ 4 + 2 + ( 3 * 3 )", // 15
-                "4 + 2 + ( 3 * 3 )", // 15
+                "4 2 ( 3 3 * )", // 15
                 "4 + 2 + ( 3.1 * 3 )", // 15.3
                 "foo", // 8
                 "{ 4 + 2 + ( 3.1 * 3 ); 10.5; foo * 2", // note: 'foo' is declared in previous tests!
@@ -146,20 +149,76 @@ namespace vax.vaxqript {
                 @"{
                     i = 3;
                     i++;
+                    i
                 }", // 4
                 @"{
                     i = 3;
                     i = 10;
                     i++;
-                    i + 7;
+                    i + 7
                 }", // 18
                 "testObj1 + 1", // 13
-                "@(vars = ($engine.globalVarsToString()))",
-                "loops = 100_000",
-                "start = (vax.vaxqript.MiscUtils.getCurrentTimeMillis());" +
-                "for(i=0;i<loops;i++){};" +
-                "stop = (vax.vaxqript.MiscUtils.getCurrentTimeMillis());" +
-                "stop-start"
+                "@(vars := ($engine.globalVarsToString()))",
+                "@(println(\"!!! text output\"+\"\t\"+ 7))",
+            };
+            testRun( ss, engine );
+        }
+
+        public static void testTime ( Engine engine ) {
+            string s = "loops = 100_000;" +
+                       "start = (vax.vaxqript.MiscUtils.getCurrentTimeMillis());" +
+                       "for(i=0;i<loops;i++){};" +
+                       "stop = (vax.vaxqript.MiscUtils.getCurrentTimeMillis());" +
+                       "stop-start";
+            testRun( s, engine );
+        }
+
+        public static void test4 ( Engine engine ) {
+            string[] ss = {
+                "\"> test if\"",
+                "if ((2+2)==4) {42}",
+                "evi := (if(i>10)2 else if(i>5)1 else 0)",
+                ":: {i=12;evi} {i=6;evi} {i=2;evi}",
+                "\"> test while\"",
+                "i=(-10);while(i<10){i++;}; i",
+                "\"> test for\"",
+                "@{for(i=1;i<10;i++) { println(i); }}",
+                "\"> test do\"",
+                "i = 0; do { println(i); i--; } while (i>(-10));",
+                "\"> test calls\"",
+                //"$engine.\"globalVarsToString\"()",
+                //"vax.vaxqript.Test.test1a($engine)"
+                "(\"vax.vaxqript.Test\"?).testMethod()",
+                "vax.vaxqript.Test.testMethod()",
+                "throw (new System.Exception(\"test exception ^_^\"))",
+                "for(i = 0; i < 100; i++ ) {if(i>13){return 42}}",
+                "i",
+                "@(i=13)",
+                "i--;while(i>(-9001)){if(i<(-41)){break}; i-=2}",
+                "i",
+                "i=0;do{i++;if(i>600){break 665}} while(true)",
+                "i",
+                "f:=(z=($args[0]);z*z)",
+                "f(111)",
+            };
+            testRun( ss, engine );
+        }
+
+        public static void test5 ( Engine engine ) {
+            string[] ss = {
+                "(System.Environment.TickCount)",
+                "x = (vax.vaxqript.Test.testField);?x", 
+                "x := (vax.vaxqript.Test.testField);?x",
+                "(x)",
+                "throw (new System.Exception())",
+                "1/0",
+                "try(1/0)",
+                "@(try{1/0})",
+                "try{1/0}catch{($ex.Message)}",
+                "try{throw (new System.ArithmeticException())}catch{($ex.Message)}",
+                "try{throw (new System.ArithmeticException())}catch(System.ArithmeticException excc){(excc.Message)}",
+                "try{throw (new System.Exception())}catch(System.ArithmeticException excc){(excc.Message)}",
+                "i=113;try{i=0;1/0}finally{i=13}"
             };
             testRun( ss, engine );
         }

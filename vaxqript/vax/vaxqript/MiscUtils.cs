@@ -66,6 +66,12 @@ namespace vax.vaxqript {
         }
 
         public static Type getTypeFor ( object n ) {
+            CompositeIdentifier ci = n as CompositeIdentifier;
+            if( ci != null ) {
+                Type t = ci.toType();
+                if( t != null )
+                    return t;
+            }
             string s = n as string;
             if( s != null ) { // get type from name
                 Type t = Type.GetType( s );

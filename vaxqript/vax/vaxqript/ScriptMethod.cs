@@ -2,11 +2,12 @@
 
 namespace vax.vaxqript {
     /**
-     * for quick lambda syntax
+     * for quick lambda syntax with hold semantics
      */
     public class ScriptMethod : IExecutable {
         private HoldType holdType;
         private CodeBlock codeBlock;
+        // TODO arguments local names
 
         // TODO add '=>' operator for quick wrapping of CodeBlock into a ScriptMethod
 
