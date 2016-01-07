@@ -40,8 +40,8 @@ namespace vax.vaxqript {
             return sb.ToString();
         }
 
-        public CodeBlock buildParseTree () {
-            CodeTreeBuilder ctb = new CodeTreeBuilder();
+        public SyntaxGroup buildParseTree () {
+            SyntaxTreeBuilder ctb = new SyntaxTreeBuilder();
             foreach( var elem in ElementList ) {
                 ctb.consume( elem );
             }

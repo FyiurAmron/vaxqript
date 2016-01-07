@@ -41,8 +41,6 @@
     <Compile Include="vax\vaxqript\IEvaluable.cs" />
     <Compile Include="vax\vaxqript\Identifier.cs" />
     <Compile Include="vax\vaxqript\IScriptOperatorOverload.cs" />
-    <Compile Include="vax\vaxqript\CodeBlock.cs" />
-    <Compile Include="vax\vaxqript\CodeTreeBuilder.cs" />
     <Compile Include="vax\vaxqript\ValueWrapper.cs" />
     <Compile Include="vax\vaxqript\ISyntaxElement.cs" />
     <Compile Include="vax\vaxqript\UnknownElement.cs" />
@@ -74,6 +72,10 @@
     <Compile Include="vax\vaxqript\ExecutionReturn.cs" />
     <Compile Include="vax\vaxqript\ScriptReturnException.cs" />
     <Compile Include="vax\vaxqript\BlockSeparator.cs" />
+    <Compile Include="e:\Develop\C_Hash\_Projects\vaxqript\vaxqript\vax\vaxqript\SyntaxGroup.cs" />
+    <Compile Include="vax\vaxqript\SyntaxTreeBuilder.cs" />
+    <Compile Include="vax\vaxqript\ISyntaxGroup.cs" />
+    <Compile Include="vax\vaxqript\SeparatorSyntaxGroup.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

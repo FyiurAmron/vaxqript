@@ -171,12 +171,14 @@ namespace vax.vaxqript {
             }
         }
 
+        /*
         private void ensureBlockSeparator( string blockName, object existingObj) {
             if ( existingObj != BlockSeparator.Instance ) {
                 throw new InvalidOperationException("'"+BlockSeparator.Instance
                     + " ' expected in "+blockName+" block; found '" + existingObj + "' instead");
             }
         }
+        */
 
         public void setFunctionArguments( params dynamic[] arguments ) {
             setIdentifierValue( ArgumentsIdentifier, arguments ); // TEMP use proper local var later on
@@ -250,50 +252,48 @@ namespace vax.vaxqript {
                 { "breakpoint", new MethodWrapper( (objs) => {
                     return null; // note: place breakpoint here when debugging
                 } ) },
-                { "delete", new MethodWrapper((objs)=>{
+                { "undeclare", new MethodWrapper((objs)=>{
+                    foreach(object obj in objs) {
                     Identifier id = objs[0] as Identifier;
                     if ( id != null ) {
                         removeIdentifier( id );
-                        return null;
-                    }
-                    IEvaluable iEva = objs[0] as IEvaluable;
-                    object o = objs[0];
-                    if ( iEva != null ) {
-                        o = iEva.eval(this);
-                        string s = o as string;
-                        if ( s != null ) {
-                            removeIdentifier( s );
-                            return null;
+                    } else {
+                        IEvaluable iEva = objs[0] as IEvaluable;
+                        object o = objs[0];
+                        if ( iEva != null ) {
+                            o = iEva.eval(this);
+                            string s = o as string;
+                            if ( s != null ) {
+                                removeIdentifier( s );
+                            } else {
+                                throw new InvalidOperationException("'delete' called with invalid parameter '"+o+"'");                                    
+                            }
                         }
                     }
-                    throw new InvalidOperationException("'delete' called with invalid parameter '"+o+"'");
+                    }
+                    return null;
                 }, HoldType.All)},
                 { "for", new MethodWrapper( (objs ) => {
                     ensureArgCount( "for", 2, objs);
-                    CodeBlock cb = objs[0] as CodeBlock;
-                    List<IEvaluable> forList = cb.getArgumentList();
-                    IEvaluable body = objs[1] as IEvaluable, init = null, condition = null, step = null;
+                    ISyntaxGroup cb = objs[0] as ISyntaxGroup;
+                    IList<IEvaluable> forList = cb.getEvaluableList();
+                    IEvaluable //
+                    body = objs[1] as IEvaluable,
+                    init = forList[0] as IEvaluable,
+                    condition = forList[1] as IEvaluable,
+                    step = null; // not guaranteed due to the way '(;;)' is parsed (no block created after last semicolon)
 
-                    int i = 1;
-                    if ( !(forList[0] is BlockSeparator) ) {
-                        init = forList[0] as IEvaluable;
-                        //i++; // already calc'ed into i
-                        ensureBlockSeparator("for", forList[1]);
-                        i++;
+                    SyntaxGroup sg = condition as SyntaxGroup;
+                    if ( sg != null && sg.isEmpty() ) {
+                        condition = null;
                     }
-                    if ( !(forList[i] is BlockSeparator) ) {
-                        condition = forList[i] as IEvaluable;
-                        i++;
-                        ensureBlockSeparator("for", forList[i]);
+                    if ( forList.Count > 2 ) {
+                        step = forList[2] as IEvaluable;
                     }
-                    i++;
-                    step = forList[i] as IEvaluable;
 
                     IExecutionFlow ef;
 
-                    if ( init != null ) {
-                        init.eval( this );
-                    }
+                    init.eval( this );
                     // minor optimiziations for tight loops follow; note that the loop is actually *expected* to have some body here
                     if ( condition == null ) {
                         if ( step == null ) { // rare case
@@ -344,7 +344,7 @@ namespace vax.vaxqript {
 
                     object ret;
                     IExecutionFlow ef;
-                    CodeBlock cb = condition as CodeBlock;
+                    SyntaxGroup cb = condition as SyntaxGroup;
                     if ( cb != null && cb.isEmpty() ) {
                         while(true) {
                             ret = body.eval( this );
@@ -379,11 +379,10 @@ namespace vax.vaxqript {
                 { "try", new MethodWrapper( (objs) => {
                     ensureArgCount( "try", 1, objs);
                     IEvaluable body = objs[0] as IEvaluable, catcher, finaller;
-                    CodeBlock exceptionMask;
+                    SyntaxGroup exceptionMask;
                     List<IEvaluable> exceptionMaskList;
-                    Type exceptionMaskType;
                     Identifier exceptionIdentifier;
-                    Type exType;
+                    Type exceptionMaskType;
 
                     switch( objs.Length ) {
                     case 1:
@@ -414,7 +413,7 @@ namespace vax.vaxqript {
                         throw new InvalidOperationException("'catch' or 'finally' expected in 'try' block; found '" + objs[1] + "' instead");
                     case 4:
                         ensureArg( "try", objs[1], catchId );
-                        exceptionMask = objs[2] as CodeBlock;
+                        exceptionMask = objs[2] as SyntaxGroup;
                         if ( exceptionMask == null ) {
                             throw new InvalidOperationException("exception mask CodeBlock expected in 'try' block; found '"+objs[2]+"' instead");
                         }
@@ -425,8 +424,8 @@ namespace vax.vaxqript {
                             throw new InvalidOperationException("exception identifier expected in 'catch' block; found '"+exceptionMaskList[1]+"' instead");
                         }
                         exceptionMaskList.RemoveAt(index);
-                        exType = MiscUtils.getTypeFor( exceptionMask.eval(this) );
-                        if ( exType == null ) {
+                        exceptionMaskType = MiscUtils.getTypeFor( exceptionMask.eval(this) );
+                        if ( exceptionMaskType == null ) {
                             throw new InvalidOperationException("unknown exception Type '"+exceptionMaskList+"in 'catch' block");
                         }
                         exceptionMaskList.Add(exceptionIdentifier);
@@ -436,7 +435,7 @@ namespace vax.vaxqript {
                             return body.eval(this);
                         } catch ( Exception ex ) {
                             Type t = ex.GetType();
-                            if ( t.IsSubclassOf(exType) || t == exType ) {
+                            if ( t.IsSubclassOf(exceptionMaskType) || t == exceptionMaskType ) {
                                 setIdentifierValue(exceptionIdentifier, ex );
                                 return catcher.eval(this);
                             }
@@ -459,13 +458,13 @@ namespace vax.vaxqript {
                         }
                     case 6:
                         ensureArg( "try", objs[1], catchId );
-                        exceptionMask = objs[2] as CodeBlock;
+                        exceptionMask = objs[2] as SyntaxGroup;
                         if ( exceptionMask == null ) {
                             throw new InvalidOperationException("exception mask CodeBlock expected in 'try' block; found '"+objs[2]+"' instead");
                         }
                         exceptionMaskList = exceptionMask.getArgumentList();
-                        exType = MiscUtils.getTypeFor( exceptionMaskList[0] );
-                        if ( exType == null ) {
+                        exceptionMaskType = MiscUtils.getTypeFor( exceptionMaskList[0] );
+                        if ( exceptionMaskType == null ) {
                             throw new InvalidOperationException("unknown exception Type '"+exceptionMaskList[0]+"in 'catch' block");
                         }
                         exceptionIdentifier = exceptionMaskList[1] as Identifier;
@@ -481,7 +480,7 @@ namespace vax.vaxqript {
                             return body.eval(this);
                         } catch ( Exception ex ) {
                             Type t = ex.GetType();
-                            if ( t.IsSubclassOf(exType) || t == exType ) {
+                            if ( t.IsSubclassOf(exceptionMaskType) || t == exceptionMaskType ) {
                                 setIdentifierValue(exceptionIdentifier, ex );
                                 return catcher.eval(this);
                             }
@@ -590,7 +589,7 @@ namespace vax.vaxqript {
         }
 
         private object execOnBlock(IExecutable iexecutable, object n, object m) {
-            CodeBlock cb = m as CodeBlock;
+            SyntaxGroup cb = m as SyntaxGroup;
             if ( cb == null ) {
                 throw new InvalidOperationException(dotOpExceptionMessage(n,m));
             }
@@ -975,7 +974,7 @@ namespace vax.vaxqript {
                 ises[i + 1] = ( ise != null ) ? ise : Wrapper.wrap( arg );
             }
             //Console.WriteLine( string.Join<ISyntaxElement>( ",", ises ) ); // in case of debug
-            return new CodeBlock( ises ).eval( this );
+            return new SyntaxGroup( ises ).eval( this );
         }
 
         public void loop() {

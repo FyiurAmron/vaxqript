@@ -1,6 +1,7 @@
 ﻿using System;
 
 namespace vax.vaxqript {
+    // currently unused
     public class BlockSeparator : IEvaluable {
         public static BlockSeparator Instance { get; private set;} 
 

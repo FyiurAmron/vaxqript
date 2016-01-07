@@ -6,12 +6,12 @@ namespace vax.vaxqript {
      */
     public class ScriptMethod : IExecutable {
         private HoldType holdType;
-        private CodeBlock codeBlock;
+        private SyntaxGroup codeBlock;
         // TODO arguments local names
 
         // TODO add '=>' operator for quick wrapping of CodeBlock into a ScriptMethod
 
-        public ScriptMethod ( HoldType holdType, CodeBlock codeBlock ) {
+        public ScriptMethod ( HoldType holdType, SyntaxGroup codeBlock ) {
             this.holdType = holdType;
             this.codeBlock = codeBlock;
         }

@@ -2,16 +2,16 @@
 using System.Collections.Generic;
 
 namespace vax.vaxqript {
-    public class CodeTreeBuilder {
-        private Stack<CodeBlock> codeBlockStack = new Stack<CodeBlock>();
+    public class SyntaxTreeBuilder {
+        private Stack<ISyntaxGroup> codeBlockStack = new Stack<ISyntaxGroup>();
         private Stack<bool> hasSeparatorStack = new Stack<bool>();
-        private CodeBlock root = new CodeBlock();
-        private CodeBlock currentCodeBlock;
+        private SyntaxGroup root = new SyntaxGroup();
+        private ISyntaxGroup currentCodeBlock;
         private bool hasSeparator;
         private bool ignoreLastSeparator = true; // i.e. ';}' sequence, that should usually be interpreted as just '}'
         private SyntaxFlow lastFlow = SyntaxFlow.None;
 
-        public CodeTreeBuilder () {
+        public SyntaxTreeBuilder () {
             currentCodeBlock = root;
         }
 
@@ -59,7 +59,7 @@ namespace vax.vaxqript {
         }
 
         private void _back () {
-            var list = currentCodeBlock.getArgumentList();
+            var list = currentCodeBlock.getEvaluableList();
             int count = list.Count;
             //if( count > 0 ) {
             list.RemoveAt( count - 1 ); // assert it's an empty CodeBlock since lastFlow == Flow.Separator
@@ -67,22 +67,22 @@ namespace vax.vaxqript {
         }
 
         private void _separator () {
-            CodeBlock child = currentCodeBlock;
+            ISyntaxGroup child = currentCodeBlock;
             _up();
 
             if( !hasSeparator ) {
                 _back();
-                _down();
+                _down( new SeparatorSyntaxGroup() );
                 currentCodeBlock.add( child );
                 hasSeparator = true;
             }
-            currentCodeBlock.add( BlockSeparator.Instance );
+            //currentCodeBlock.add( BlockSeparator.Instance );
             _down();
         }
 
         private void _up () {
             if( codeBlockStack.Count == 0 ) {
-                root = new CodeBlock();
+                root = new SyntaxGroup();
                 root.add( currentCodeBlock );
                 currentCodeBlock = root;
             } else {
@@ -101,13 +101,16 @@ namespace vax.vaxqript {
             }
         }
 
-        private void _down () {
-            CodeBlock newBlock = new CodeBlock();
-            currentCodeBlock.add( newBlock );
+        private void _down ( ISyntaxGroup syntaxGroup ) {
+            currentCodeBlock.add( syntaxGroup );
             codeBlockStack.Push( currentCodeBlock );
             hasSeparatorStack.Push( hasSeparator );
             hasSeparator = false;
-            currentCodeBlock = newBlock;
+            currentCodeBlock = syntaxGroup;
+        }
+
+        private void _down () {
+            _down( new SyntaxGroup() );
         }
 
         private void _end () {
@@ -116,7 +119,7 @@ namespace vax.vaxqript {
             }
         }
 
-        public CodeBlock getRoot () {
+        public SyntaxGroup getRoot () {
             return root;
         }
     }

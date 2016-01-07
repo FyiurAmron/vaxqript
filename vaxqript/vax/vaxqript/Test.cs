@@ -99,7 +99,7 @@ namespace vax.vaxqript {
         }
 
         public static void test1b ( Engine engine ) {
-            CodeBlock cb1 = new CodeBlock(), cb2 = new CodeBlock();
+            SyntaxGroup cb1 = new SyntaxGroup(), cb2 = new SyntaxGroup();
             cb1.addAll( engine.operatorValueOf( "+" ), new ValueWrapper( 42 ), new ValueWrapper( 2 ) );
             cb2.addAll( engine.operatorValueOf( "-" ), cb1, 46, new AddTestClass() );
             Console.WriteLine( MiscUtils.toString( engine.eval( cb2 ) ) );
@@ -127,7 +127,7 @@ namespace vax.vaxqript {
         public static void test2b ( Engine engine ) {
             var sl = new StringLexer( "for(i=1;i<2;i++) { print(i); }", engine );
             LinearSyntax ls = sl.createLinearSyntax();
-            CodeBlock cb = ls.buildParseTree();
+            SyntaxGroup cb = ls.buildParseTree();
             Console.WriteLine( ls.debugToString() );
             Console.WriteLine( "" + ls );
             Console.WriteLine( "" + cb );
@@ -139,7 +139,7 @@ namespace vax.vaxqript {
                 "{ + 4 1 { * 3 11 } }", // 38
                 "{ + 4 2 { * 3 3", // 15
                 "{ 4 + 2 + ( 3 * 3 )", // 15
-                "4 2 ( 3 3 * )", // 15
+                "4 2 ( 3 3 * ) +", // 15
                 "4 + 2 + ( 3.1 * 3 )", // 15.3
                 "foo", // 8
                 "{ 4 + 2 + ( 3.1 * 3 ); 10.5; foo * 2", // note: 'foo' is declared in previous tests!
@@ -169,7 +169,7 @@ namespace vax.vaxqript {
                        "start = (vax.vaxqript.MiscUtils.getCurrentTimeMillis());" +
                        "for(i=0;i<loops;i++){};" +
                        "stop = (vax.vaxqript.MiscUtils.getCurrentTimeMillis());" +
-                       "stop-start";
+                       "(stop-start) + \" ms for \" + loops + \" iterations\"";
             testRun( s, engine );
         }
 
@@ -236,7 +236,7 @@ namespace vax.vaxqript {
 
             //Console.WriteLine( ls.ToString() );
             //Console.WriteLine( ls.debugToString() );
-            CodeBlock cn = ls.buildParseTree();
+            SyntaxGroup cn = ls.buildParseTree();
             //Console.WriteLine( cn );
             try {
                 Console.WriteLine( MiscUtils.toString( engine.eval( cn ) ) );

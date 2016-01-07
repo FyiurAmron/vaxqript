@@ -1,16 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections;
 
 namespace vax.vaxqript {
-    public class CodeBlock : IEvaluable, IExecutable {
+    public class SyntaxGroup : ISyntaxGroup, IEvaluable, IExecutable {
         private List<IEvaluable> arguments = new List<IEvaluable>();
         private Operator op;
         private IExecutable idExec;
 
-        public CodeBlock () {
+        public SyntaxGroup () {
         }
 
-        public CodeBlock ( params ISyntaxElement[] syntaxElements ) {
+        public SyntaxGroup ( params ISyntaxElement[] syntaxElements ) {
             foreach( ISyntaxElement syntaxElement in syntaxElements ) {
                 _add( syntaxElement );
             }
@@ -25,6 +26,10 @@ namespace vax.vaxqript {
         }
 
         public List<IEvaluable> getArgumentList () {
+            return arguments;
+        }
+
+        public IList<IEvaluable> getEvaluableList () {
             return arguments;
         }
 
@@ -102,7 +107,7 @@ namespace vax.vaxqript {
                 j = offset;
                 switch (holdType) {
                 case HoldType.None:
-                    for(; i < realArgCount; i++, j++ ) {
+                    for( ; i < realArgCount; i++, j++ ) {
                         arr[i] = arguments[j].eval( engine );
                         /*
                         if( arr[i] is BlockSeparator ) {
@@ -134,7 +139,7 @@ namespace vax.vaxqript {
                     }
                     break;
                 case HoldType.All:
-                    for(; i < realArgCount; i++, j++ ) {
+                    for( ; i < realArgCount; i++, j++ ) {
                         arr[i] = arguments[j];
                         /*
                         if( arr[i] is BlockSeparator ) {
@@ -151,7 +156,7 @@ namespace vax.vaxqript {
                 j = argCount - 1;
                 switch (holdType) {
                 case HoldType.All:
-                    for( ; i < realArgCount; i++, j-- ) {
+                    for(; i < realArgCount; i++, j-- ) {
                         arr[i] = arguments[j];
                         /*
                         if( arr[i] is BlockSeparator ) {
@@ -179,10 +184,11 @@ namespace vax.vaxqript {
                         if( arr[i] is BlockSeparator ) {
                             return arr;
                         }
-                        */                    }
+                        */
+                    }
                     break;
                 case HoldType.None:
-                    for( ; i < realArgCount; i++, j-- ) {
+                    for(; i < realArgCount; i++, j-- ) {
                         arr[i] = arguments[j].eval( engine );
                         /*
                         if( arr[i] is BlockSeparator ) {
@@ -203,10 +209,6 @@ namespace vax.vaxqript {
 
         public bool isEmpty () {
             return op == null && arguments.Count == 0;
-        }
-
-        public override string ToString () {
-            return " { " + ( ( op != null ) ? ( op + " " ) : "" ) + string.Join( " ", arguments ) + " } ";
         }
 
         public HoldType getHoldType ( Engine engine ) {
@@ -239,17 +241,9 @@ namespace vax.vaxqript {
                             return iEva.eval( engine );
                         }
                     } else {
-                        if( arguments[1] is BlockSeparator ) {
-                            IEvaluable iEva = vw.Value as IEvaluable;
-                            if( iEva != null ) {
-                                o = iEva.eval( engine );
-                                preEval = true;
-                            }
-                        } else {
-                            idExec = vw.Value as IExecutable;
-                            if( idExec != null ) {
-                                return idExec.exec( engine, prepareArguments( engine, 1 ) );
-                            }
+                        idExec = vw.Value as IExecutable;
+                        if( idExec != null ) {
+                            return idExec.exec( engine, prepareArguments( engine, 1 ) );
                         }
                     }
                 }
@@ -263,12 +257,8 @@ namespace vax.vaxqript {
                 if( count == 1 ) {
                     return cid.eval( engine );
                 } else {
-                    if( arguments[1] is BlockSeparator ) {
-                        o = cid.eval( engine );
-                    } else {
-                        idExec = cid;
-                        return idExec.exec( engine, prepareArguments( engine, 1 ) );
-                    }
+                    idExec = cid;
+                    return idExec.exec( engine, prepareArguments( engine, 1 ) );
                 }
             }
 
@@ -286,6 +276,11 @@ namespace vax.vaxqript {
             object ret = _eval( engine );
             engine.popCallStack();
             return ret;
+        }
+
+
+        public override string ToString () {
+            return " { " + ( ( op != null ) ? ( op + " " ) : "" ) + string.Join( " ", arguments ) + " } ";
         }
     }
 }
