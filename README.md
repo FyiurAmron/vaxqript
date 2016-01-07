@@ -2,8 +2,7 @@
 
 TODO:
 
-* import (c#) statement
+* import (java/c#-ish) statement
 * local vars, "function" keyword, function-limited 'return'
-* try-catch
 * deep clone CodeBlock
 * proper automated test suite
