@@ -22,9 +22,9 @@ namespace vax.vaxqript {
             if( val == this )
                 throw new StackOverflowException( "trying to evaluate an Identifier directly referencing itself" );
             IEvaluable ie = val as IEvaluable;
-            engine.pushCallStack( this );
+            engine.pushCall( this );
             object ret = ( ie == null ) ? val : ie.eval( engine );
-            engine.popCallStack();
+            engine.popCall();
             return ret;
         }
 
@@ -34,11 +34,11 @@ namespace vax.vaxqript {
                 throw new InvalidOperationException( "identifier '" + Name + "' not defined yet" );
 
             MethodWrapper methodWrapper = vw.Value as MethodWrapper;
-            engine.pushCallStack( this );
+            engine.pushCall( this );
             object ret = ( methodWrapper == null )
                 ? eval( engine )
                 : methodWrapper.invokeWith( arguments );
-            engine.popCallStack();
+            engine.popCall();
             return ret;
         }
 

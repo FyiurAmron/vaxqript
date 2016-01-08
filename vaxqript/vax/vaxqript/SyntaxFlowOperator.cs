@@ -15,10 +15,14 @@ namespace vax.vaxqript {
                 return new SyntaxFlowOperator( flow );
             case SyntaxFlow.Up:
                 return new SyntaxFlowOperator( flow );
+            case SyntaxFlow.DownArguments:
+                return new SyntaxFlowOperator( flow );
+            case SyntaxFlow.UpArguments:
+                return new SyntaxFlowOperator( flow );
             case SyntaxFlow.Separator:
                 return new SyntaxFlowOperator( flow );
             }
-            throw new InvalidOperationException( "uknown Flow '" + flow + "'" );
+            throw new InvalidOperationException( "unknown Flow '" + flow + "'" );
         }
 
         public static string ToString ( SyntaxFlow flow ) {
@@ -27,10 +31,14 @@ namespace vax.vaxqript {
                 return "{";
             case SyntaxFlow.Up:
                 return "}";
+            case SyntaxFlow.DownArguments:
+                return "(";
+            case SyntaxFlow.UpArguments:
+                return ")";
             case SyntaxFlow.Separator:
                 return ";";
             }
-            throw new InvalidOperationException( "uknown Flow '" + flow + "'" );
+            throw new InvalidOperationException( "unknown Flow '" + flow + "'" );
         }
 
         public override string ToString () {

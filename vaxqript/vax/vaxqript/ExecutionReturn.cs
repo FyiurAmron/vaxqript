@@ -14,7 +14,7 @@ namespace vax.vaxqript {
 
         public object getLoopValue() {
             return this; // wrapped; propagates until top
-        } // TODO implement 'function' blocks that stop propagation
+        }
     }
 }
 

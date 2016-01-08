@@ -56,9 +56,9 @@ namespace vax.vaxqript {
         }
 
         public dynamic exec ( Engine engine, params dynamic[] arguments ) {
-            engine.pushCallStack( this );
+            engine.pushCall( this );
             object ret = _exec( engine, arguments );
-            engine.popCallStack();
+            engine.popCall();
             return ret;
         }
 

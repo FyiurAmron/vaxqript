@@ -15,6 +15,18 @@ namespace vax.vaxqript {
         public static void _Main ( string[] args ) {
             Engine engine = new Engine();
 
+            // additional/brand new tests sandbox
+            string[] inputs = {
+                "\"=== QUICK TESTS ===\"",
+                "fun = {new vax.vaxqript.Function( `{($args0[0]) * 2} )}",
+                "fun(420)",
+                "fun",
+                "fun = (function( ($args0[0]) + 1 ))",
+                "fun(900)",
+                "fun(\"900\")",
+                "\"=== END OF TESTS ===\"",
+            };
+
             bool doTests = true;
 
             if( doTests ) {
@@ -33,14 +45,9 @@ namespace vax.vaxqript {
                 Console.WriteLine( "=== TEST 5  ===" );
                 Test.test5( engine );
                 Console.WriteLine( "=== TEST t  ===" );
-                Test.testTime( engine );
+                Test.testTime( engine ); // TODO profile; we had a nasty perf drop lately
+                Test.testRun( inputs, engine );
             }
-
-            // additional/brand new tests sandbox
-            string[] inputs = {
-                "\"end of tests...\"",
-            };
-            Test.testRun( inputs, engine );
 
             Console.WriteLine( "=== READ-EVAL-PRINT LOOP ===" );
             engine.loop();

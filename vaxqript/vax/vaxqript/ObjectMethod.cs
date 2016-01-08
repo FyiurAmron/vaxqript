@@ -22,9 +22,9 @@ namespace vax.vaxqript {
 
         // added for convenience
         public dynamic exec ( Engine engine, params dynamic[] arguments ) {
-            engine.pushCallStack( this );
+            engine.pushCall( this );
             object ret = invoke( arguments );
-            engine.popCallStack();
+            engine.popCall();
             return ret;
         }
 

@@ -16,16 +16,16 @@ namespace vax.vaxqript {
         }
 
         public dynamic exec ( Engine engine, params dynamic[] arguments ) {
-            engine.pushCallStack( this );
+            engine.pushCall( this );
             object ret = _exec( engine, arguments );
-            engine.popCallStack();
+            engine.popCall();
             return ret;
         }
 
         public dynamic eval ( Engine engine ) {
-            engine.pushCallStack( this );
+            engine.pushCall( this );
             object ret = _eval( engine );
-            engine.popCallStack();
+            engine.popCall();
             return ret;
         }
 
@@ -91,7 +91,6 @@ namespace vax.vaxqript {
 
             Identifier idLast = Last.Value; //idLast = this[Count - 1];
             string fieldOrPropertyName = idLast.Name; // always
-            object ret;
 
             object o;
             Type t;

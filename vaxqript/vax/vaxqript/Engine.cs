@@ -19,11 +19,13 @@ namespace vax.vaxqript {
         public Identifier NewIdentifier { get; private set; } /* = new Identifier("new");*/
         public Identifier ExceptionIdentifier { get; private set; } /* = new Identifier("$ex");*/
         public Identifier ArgumentsIdentifier { get; private set; } /* = new Identifier("$args");*/
+        public Identifier Arguments0Identifier { get; private set; } /* = new Identifier("$args0");*/
         public Identifier PromptIdentifier { get; private set; } /* = new Identifier("$prompt");*/
         private ValueWrapper undefinedValue = new ValueWrapper( Undefined.INSTANCE );
 
         //private Stack<ISyntaxElement> callStack = new Stack<ISyntaxElement>();
-        private LinkedList<ISyntaxElement> callStack = new LinkedList<ISyntaxElement>();
+        private LinkedList<ISyntaxElement> callStack = new LinkedList<ISyntaxElement>(); // since it's easier to manage in c#
+        private LinkedList<Function> functionStack = new LinkedList<Function>();
 
         public int StackLimit { get; set; }
 
@@ -34,6 +36,7 @@ namespace vax.vaxqript {
             NewIdentifier = new Identifier( "new" );
             ExceptionIdentifier = new Identifier( "$ex" );
             ArgumentsIdentifier = new Identifier( "$args" );
+            Arguments0Identifier = new Identifier( "$args0" );
             PromptIdentifier = new Identifier( "$prompt" );
             //UndefinedVariableBehaviour = UndefinedVariableBehaviour.ReturnRawNull;
             UndefinedVariableBehaviour = UndefinedVariableBehaviour.ThrowException;
@@ -45,18 +48,28 @@ namespace vax.vaxqript {
             createDefaultOperators();
         }
 
-        public void pushCallStack ( ISyntaxElement caller ) {
-            //callStack.Push( caller );
+        public void pushCall ( ISyntaxElement caller ) {
             callStack.AddLast( caller );
             if( callStack.Count > StackLimit ) {
                 throw new InvalidOperationException( "stack overflow" );
             }
         }
 
-        public void popCallStack () {
-            //callStack.Pop();
+        public void popCall () {
             callStack.RemoveLast();
         }
+
+        public void pushFunction ( Function function ) {
+            functionStack.AddLast( function );
+            if( functionStack.Count > StackLimit ) {
+                throw new InvalidOperationException( "stack overflow" );
+            }
+        }
+
+        public void popFunction () {
+            functionStack.RemoveLast();
+        }
+
 
         private T valueNotFound<T> ( string identifierName, T undefinedValue ) {
             switch (UndefinedVariableBehaviour) {
@@ -158,10 +171,26 @@ namespace vax.vaxqript {
             return "ENGINE VARS:\n" + MiscUtils.join( "\n", globalVarMap );
         }
 
-        private void ensureArgCount( string statementName, int requiredCount, object[] args )  {
-            if ( args.Length < requiredCount ) {
-                throw new InvalidOperationException("'"+statementName+"' statement missing required blocks ("+requiredCount+" needed, "
-                        +args.Length+" found)");
+        private void ensureArgCount( string statementName, int minCount, int maxCount, object[] args )  {
+            ensureArgCount( statementName, minCount, maxCount, args.Length );
+        }
+
+        private void ensureArgCount( string statementName, int minCount, int maxCount, ICollection collection )  {
+            ensureArgCount( statementName, minCount, maxCount, collection.Count );
+        }
+
+        private void ensureArgCount<T>( string statementName, int minCount, int maxCount, ICollection<T> collection )  {
+            ensureArgCount( statementName, minCount, maxCount, collection.Count );
+        }
+
+        private void ensureArgCount( string statementName, int minCount, int maxCount, int actualLength )  {
+            if ( actualLength < minCount ) {
+                throw new InvalidOperationException("'"+statementName+"' statement missing required blocks ("+minCount+" needed, "
+                    +actualLength+" found)");
+            }
+            if ( actualLength> maxCount ) {
+                throw new InvalidOperationException("'"+statementName+"' statement having too many blocks ("+maxCount+" needed, "
+                    +actualLength+" found)");
             }
         }
 
@@ -182,13 +211,33 @@ namespace vax.vaxqript {
 
         public void setFunctionArguments( params dynamic[] arguments ) {
             setIdentifierValue( ArgumentsIdentifier, arguments ); // TEMP use proper local var later on
+            if( arguments != null && arguments.Length > 0 ) {
+                object args0 = arguments[0];
+                if( args0 != null ) {
+                    setIdentifierValue( Arguments0Identifier, args0 );
+                }
+            }
         }
 
         public string getPrompt() {
             return (string) getIdentifierValueRaw( PromptIdentifier );
         }
 
+        private bool evalCondition( IEvaluable condition ) {
+            //return ( MiscUtils.unwrap( condition.eval( this ) ) as bool? ) ?? false;
+            object o = condition.eval( this );
+            ValueList vl = o as ValueList;
+            bool? b;
+            b = (( vl != null ) ? vl.last() : MiscUtils.unwrap( condition.eval( this ) ))as bool?;
+            if ( b == null ) {
+                throw new InvalidOperationException("condition '"+condition+"' didn't eval to bool type");
+            }
+            return b.Value;
+        }
+
         protected void createDefaultVariables () {
+            // TODO maybe create a 'sys' var set (similar to that in SC) so that they are both const and 'invisible'?
+
             if( UndefinedVariableBehaviour == UndefinedVariableBehaviour.ReturnUndefined ) {
                 setIdentifierValueConstant( UndefinedIdentifier, Undefined.INSTANCE );
             }
@@ -252,7 +301,7 @@ namespace vax.vaxqript {
                 { "breakpoint", new MethodWrapper( (objs) => {
                     return null; // note: place breakpoint here when debugging
                 } ) },
-                { "undeclare", new MethodWrapper((objs)=>{
+                { "undeclare", new MethodWrapper((objs)=>{ // TODO find a better name for this method
                     foreach(object obj in objs) {
                     Identifier id = objs[0] as Identifier;
                     if ( id != null ) {
@@ -273,21 +322,23 @@ namespace vax.vaxqript {
                     }
                     return null;
                 }, HoldType.All)},
-                { "for", new MethodWrapper( (objs ) => {
-                    ensureArgCount( "for", 2, objs);
+                { "for", new MethodWrapper( (objs ) => { // TODO foreach syntax
+                    ensureArgCount( "for", 2, 2, objs);
                     ISyntaxGroup cb = objs[0] as ISyntaxGroup;
                     IList<IEvaluable> forList = cb.getEvaluableList();
+                    ensureArgCount( "for", 2, 3, forList );
                     IEvaluable //
                     body = objs[1] as IEvaluable,
                     init = forList[0] as IEvaluable,
                     condition = forList[1] as IEvaluable,
-                    step = null; // not guaranteed due to the way '(;;)' is parsed (no block created after last semicolon)
+                    step = null; // not guaranteed due to the way '(;;)' is parsed (if ignoreLastSeparator, no block is created after last semicolon)
 
-                    SyntaxGroup sg = condition as SyntaxGroup;
+                    ISyntaxGroup sg = condition as ISyntaxGroup;
                     if ( sg != null && sg.isEmpty() ) {
                         condition = null;
                     }
-                    if ( forList.Count > 2 ) {
+                    sg = step as ISyntaxGroup;
+                    if ( forList.Count == 3 || (sg != null && sg.isEmpty() ) ) {
                         step = forList[2] as IEvaluable;
                     }
 
@@ -316,14 +367,14 @@ namespace vax.vaxqript {
                     } // else 
 
                     if ( step == null ) {
-                        while( ( condition.eval( this ) as bool? ) ?? false ) {
+                        while( evalCondition(condition) ) {
                             ef = body.eval( this ) as IExecutionFlow;
                             if ( ef != null ) {
                                 return ef.getLoopValue();
                             }
                         }                        
                     } else {
-                        while( ( condition.eval( this ) as bool? ) ?? false ) {
+                        while( evalCondition(condition) ) {
                             ef = body.eval( this ) as IExecutionFlow;
                             if ( ef != null ) {
                                 return ef.getLoopValue();
@@ -335,7 +386,7 @@ namespace vax.vaxqript {
                 }, HoldType.All ) },
                 // "while" is a bit further in this method
                 { "do", new MethodWrapper( (objs ) => {
-                    ensureArgCount( "do", 3, objs);
+                    ensureArgCount( "do", 3, 3, objs);
                     ensureArg( "do", objs[1], whileId );
 
                     IEvaluable //
@@ -344,7 +395,7 @@ namespace vax.vaxqript {
 
                     object ret;
                     IExecutionFlow ef;
-                    SyntaxGroup cb = condition as SyntaxGroup;
+                    ISyntaxGroup cb = condition as ISyntaxGroup;
                     if ( cb != null && cb.isEmpty() ) {
                         while(true) {
                             ret = body.eval( this );
@@ -354,14 +405,13 @@ namespace vax.vaxqript {
                             }
                         }
                     } // else
-
                         do {
                             ret = body.eval( this );
                             ef = ret as IExecutionFlow;
                             if ( ef != null ) {
                                 return ef.getLoopValue();
                             }
-                        } while ( ( condition.eval( this ) as bool? ) ?? false );
+                        } while ( evalCondition(condition) );
                     return null;
                 }, HoldType.All ) },
                 { "break", new MethodWrapper(
@@ -377,10 +427,10 @@ namespace vax.vaxqript {
                     throw (Exception) objs[0];
                 } ) },
                 { "try", new MethodWrapper( (objs) => {
-                    ensureArgCount( "try", 1, objs);
+                    ensureArgCount( "try", 1, 6, objs);
                     IEvaluable body = objs[0] as IEvaluable, catcher, finaller;
-                    SyntaxGroup exceptionMask;
-                    List<IEvaluable> exceptionMaskList;
+                    ISyntaxGroup exceptionMask;
+                    IList<IEvaluable> exceptionMaskList;
                     Identifier exceptionIdentifier;
                     Type exceptionMaskType;
 
@@ -413,11 +463,11 @@ namespace vax.vaxqript {
                         throw new InvalidOperationException("'catch' or 'finally' expected in 'try' block; found '" + objs[1] + "' instead");
                     case 4:
                         ensureArg( "try", objs[1], catchId );
-                        exceptionMask = objs[2] as SyntaxGroup;
+                        exceptionMask = objs[2] as ISyntaxGroup;
                         if ( exceptionMask == null ) {
-                            throw new InvalidOperationException("exception mask CodeBlock expected in 'try' block; found '"+objs[2]+"' instead");
+                            throw new InvalidOperationException("exception mask ISyntaxGroup expected in 'try' block; found '"+objs[2]+"' instead");
                         }
-                        exceptionMaskList = exceptionMask.getArgumentList();
+                        exceptionMaskList = exceptionMask.getEvaluableList();
                         int index = exceptionMaskList.Count - 1;
                         exceptionIdentifier = exceptionMaskList[index] as Identifier;
                         if ( exceptionIdentifier == null ) {
@@ -458,11 +508,11 @@ namespace vax.vaxqript {
                         }
                     case 6:
                         ensureArg( "try", objs[1], catchId );
-                        exceptionMask = objs[2] as SyntaxGroup;
+                        exceptionMask = objs[2] as ISyntaxGroup;
                         if ( exceptionMask == null ) {
-                            throw new InvalidOperationException("exception mask CodeBlock expected in 'try' block; found '"+objs[2]+"' instead");
+                            throw new InvalidOperationException("exception mask ISyntaxGroup expected in 'try' block; found '"+objs[2]+"' instead");
                         }
-                        exceptionMaskList = exceptionMask.getArgumentList();
+                        exceptionMaskList = exceptionMask.getEvaluableList();
                         exceptionMaskType = MiscUtils.getTypeFor( exceptionMaskList[0] );
                         if ( exceptionMaskType == null ) {
                             throw new InvalidOperationException("unknown exception Type '"+exceptionMaskList[0]+"in 'catch' block");
@@ -491,29 +541,69 @@ namespace vax.vaxqript {
                     }
                     throw new InvalidOperationException("mismatched amount of arguments (found "+objs.Length+"; expected 1, 3, 4, 5 or 6) in 'try' block");
                 }, HoldType.All ) },
+                {"function", new MethodWrapper( (objs)=> {
+                    switch( objs.Length ) {
+                    case 1:
+                        return new Function( (IEvaluable) objs[0]); // it has to be IEvaluable since we have Hold on it (HoldType.All)
+                    case 2:
+                        ISyntaxGroup isg = objs[0] as ISyntaxGroup;
+                        if ( isg == null ) {
+                            throw new InvalidOperationException("'function' requires its first argument to be either the function body or argument list");
+                        }
+                        var list = isg.getEvaluableList();
+                        int count = list.Count;
+                        Identifier[] ids = new Identifier[list.Count];
+                        int i = 0;
+                        foreach( IEvaluable iEva in list ) {
+                            Identifier id = iEva as Identifier;
+                            if ( id == null ) {
+                                throw new InvalidOperationException("'function' requires its argument list to be populated with Identifier instances only");
+                            }
+                            ids[i] = id;
+                            i++;
+                        }
+                        return new Function( (IEvaluable) objs[1], ids );
+                    }
+                    throw new InvalidOperationException("wrong number of parameters for 'function' (expected 1 or 2, found "
+                        +objs.Length+"' instead)");
+                }, HoldType.All )},
                 //// utility methods
                 { "print", new MethodWrapper( (objs ) => {
                     foreach( object o in objs ) {
-                        Console.Write( ( o == null ) ? "null" : o );
+                        ArgumentGroup ag = o as ArgumentGroup;
+                        if ( ag != null && ag.getOperator() == null ) {
+                            foreach( IEvaluable ie in ag.getEvaluableList() ) {
+                                Console.Write( MiscUtils.toString( ie.eval(this) ) );
+                            }
+                        } else {
+                            Console.Write( MiscUtils.toString( ((IEvaluable)o).eval(this) ) );
+                        }
                     }
-                    return null;
-                } ) },
+                    return ""; // easy way to produce no additional visual output
+                }, HoldType.All ) },
                 { "println", new MethodWrapper( (objs ) => {
                     foreach( object o in objs ) {
-                        Console.WriteLine( ( o == null ) ? "null" : o );
+                        ArgumentGroup ag = o as ArgumentGroup;
+                        if ( ag != null && ag.getOperator() == null ) {
+                            foreach( IEvaluable ie in ag.getEvaluableList() ) {
+                                Console.WriteLine( MiscUtils.toString( ie.eval(this) ) );
+                            }
+                        } else {
+                            Console.WriteLine( MiscUtils.toString( ((IEvaluable)o).eval(this) ) );
+                        }
                     }
-                    return null;
-                } ) },
+                    return ""; // easy way to produce no additional visual output
+                }, HoldType.All ) },
                 };
-            // note: by default, with 'func(arg0,arg1...)' syntax, obj[0] contains *all* arguments passed, wrapped as a CodeBlock;
+            // note: by default, with 'func(arg0,arg1...)' syntax, obj[0] contains *all* arguments passed, wrapped as a ValueList
             // to pass the arguments *directly*, use 'func arg0 arg1'
             // - this is *strictly* required for composite (multi-block) methods (like 'for', 'while' etc) to work at all!
             setIdentifierValueConstant( ifId, new MethodWrapper( (objs ) => {
-                ensureArgCount( "if", 2, objs);
+                ensureArgCount( "if", 2, StackLimit, objs);
                 int len = objs.Length;
                 bool hasLoneElse = (len % 4 == 0);
                 for( int i = 0; i < len; i += 2 ) {
-                    if ( ( ((IEvaluable)objs[i]).eval(this) as bool? ) ?? false ) {
+                    if ( evalCondition((IEvaluable)objs[i]) ) {
                         return ((IEvaluable)objs[i+1]).eval(this);
                     }
                     i += 2;
@@ -531,7 +621,7 @@ namespace vax.vaxqript {
                 return null;
             }, HoldType.All ) );
             setIdentifierValueConstant ( whileId, new MethodWrapper( (objs ) => {
-                ensureArgCount( "while", 2, objs);
+                ensureArgCount( "while", 2, 2, objs);
                 IEvaluable //
                 condition = objs[0] as IEvaluable,
                 body = objs[1] as IEvaluable;
@@ -539,7 +629,7 @@ namespace vax.vaxqript {
                 object ret;
                 IExecutionFlow ef;
 
-                while( ( condition.eval( this ) as bool? ) ?? false ) {
+                while( evalCondition(condition) ) {
                     ret = body.eval( this );
                     ef = ret as IExecutionFlow;
                     if ( ef != null ) {
@@ -589,7 +679,7 @@ namespace vax.vaxqript {
         }
 
         private object execOnBlock(IExecutable iexecutable, object n, object m) {
-            SyntaxGroup cb = m as SyntaxGroup;
+            ISyntaxGroup cb = m as ISyntaxGroup;
             if ( cb == null ) {
                 throw new InvalidOperationException(dotOpExceptionMessage(n,m));
             }
@@ -718,7 +808,7 @@ namespace vax.vaxqript {
                     }
                 ), // 'typeof' operator
                 //new Operator( "=>"),
-                new Operator( "@", (n ) => "", (n,m) => m), // suppress return operator
+                //new Operator( "@", (n ) => "", (n,m) => m), // suppress return operator
                 //new Operator( "*&", () => callStack.Last.Previous.Previous.Value ),
                 ////regular unary/nary operators
                 new Operator( "+",

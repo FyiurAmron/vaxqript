@@ -4,7 +4,6 @@ using System.Collections;
 
 namespace vax.vaxqript {
     public class SeparatorSyntaxGroup : ISyntaxGroup {
-        /*,IExecutable*/
         private List<IEvaluable> groups = new List<IEvaluable>();
 
         public SeparatorSyntaxGroup () {
@@ -23,6 +22,10 @@ namespace vax.vaxqript {
             return groups;
         }
 
+        public bool isEmpty() {
+            return groups.Count == 0;
+        }
+
         public dynamic _eval ( Engine engine ) {
             int count = groups.Count;
             if ( count == 0 ) {
@@ -39,9 +42,9 @@ namespace vax.vaxqript {
         }
 
         public dynamic eval ( Engine engine ) {
-            engine.pushCallStack( this );
+            engine.pushCall( this );
             object ret = _eval( engine );
-            engine.popCallStack();
+            engine.popCall();
             return ret;
         }
 

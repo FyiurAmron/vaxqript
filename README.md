@@ -3,6 +3,6 @@
 TODO:
 
 * import (java/c#-ish) statement
-* local vars, "function" keyword, function-limited 'return'
-* deep clone CodeBlock
+* local vars
+* deep clone ISyntaxGroup instances etc.
 * proper automated test suite

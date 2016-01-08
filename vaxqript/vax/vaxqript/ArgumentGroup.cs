@@ -1,11 +1,11 @@
 ﻿using System;
 
 namespace vax.vaxqript {
-    public class SyntaxGroup : AbstractSyntaxGroup {
-        public SyntaxGroup () : base() {
+    public class ArgumentGroup : AbstractSyntaxGroup {
+        public ArgumentGroup () : base() {
         }
 
-        public SyntaxGroup ( params ISyntaxElement[] syntaxElements ) : base( syntaxElements ) {
+        public ArgumentGroup ( params ISyntaxElement[] syntaxElements ) : base( syntaxElements ) {
         }
 
         override public dynamic _eval ( Engine engine ) {
@@ -17,6 +17,7 @@ namespace vax.vaxqript {
                 return null;
             } 
             Identifier id = arguments[0] as Identifier;
+
             if( id != null ) {
                 ValueWrapper vw = engine.getIdentifierValue( id );
                 if( vw != null ) {
@@ -46,13 +47,22 @@ namespace vax.vaxqript {
                 }
             }
 
-            for( int i = 1; i < count; i++ ) {
-                if( o is IExecutionFlow ) {
-                    return o;
+            ValueList ret = new ValueList( count );
+            ret.Add( o );
+            int i = 0;
+            foreach( IEvaluable iEva in arguments ) {
+                if( i != 0 ) {
+                    ret.Add( iEva.eval( engine ) );
+                } else {
+                    i++;
                 }
-                o = arguments[i].eval( engine );
             }
-            return o;
+            return ret;
+        }
+
+        public override string ToString () {
+            return " ( " + ( ( op != null )
+                ? op + " " + string.Join( " ", arguments ) : string.Join( ",", arguments ) ) + " ) ";
         }
     }
 }
