@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 
 namespace vax.vaxqript {
     public class Function : IExecutable {/*, IEvaluable*/
@@ -12,6 +14,12 @@ namespace vax.vaxqript {
         public Function ( IEvaluable syntaxGroup, params Identifier[] identifiers ) {
             this.evaluable = syntaxGroup;
             this.identifiersMapping = identifiers;
+        }
+
+        public Function ( IEvaluable syntaxGroup, IList identifiers ) {
+            this.evaluable = syntaxGroup;
+            this.identifiersMapping = new Identifier[identifiers.Count];
+            identifiers.CopyTo( identifiersMapping, 0 );
         }
 
         private dynamic _eval ( Engine engine ) {

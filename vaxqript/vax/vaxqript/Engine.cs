@@ -795,7 +795,7 @@ namespace vax.vaxqript {
                         n = vw.Value; // note: not recursive!
                     }
                     Identifier id = n as Identifier;
-                    return ( id != null ) ? getIdentifierValue( id ) : Wrapper.wrap( n );
+                    return ( id != null ) ? /*getIdentifierValue( id )*/ id : Wrapper.wrap( n );
                 }, null, HoldType.All ),
                 new Operator( "?",
                     (n ) => MiscUtils.getTypeFor(n),

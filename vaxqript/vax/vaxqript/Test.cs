@@ -219,6 +219,8 @@ namespace vax.vaxqript {
                 "fun = {new vax.vaxqript.Function( `{($args0[0]) * 2} )}",
                 "fun(420)",
                 "fun",
+                "f={new vax.vaxqript.Function({`(x*2)},{::(`x)})}",
+                "fun(420)",
                 "fun = (function( ($args0[0]) + 1 ))",
                 "fun(900)",
                 "fun(\"900\")",

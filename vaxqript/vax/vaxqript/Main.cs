@@ -25,7 +25,6 @@ namespace vax.vaxqript {
             bool doTests = true;
 
             if( doTests ) {
-                /*
                 Console.WriteLine( "=== TEST 1a ===" );
                 Test.test1a( engine ); // completed
                 Console.WriteLine( "=== TEST 1b ===" );
@@ -40,14 +39,11 @@ namespace vax.vaxqript {
                 Test.test4( engine ); // completed
                 Console.WriteLine( "=== TEST 5  ===" );
                 Test.test5( engine );
-                */
                 Console.WriteLine( "=== TEST 6  ===" );
                 Test.test6( engine );
-                /*
                 Console.WriteLine( "=== TEST t  ===" );
                 Test.testTime( engine ); // TODO profile; we had a nasty perf drop lately
                 Test.testRun( ss, engine );
-                */
             }
 
             Console.WriteLine( "=== READ-EVAL-PRINT LOOP ===" );
