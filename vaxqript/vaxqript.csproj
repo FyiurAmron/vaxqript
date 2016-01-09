@@ -59,7 +59,6 @@
     <Compile Include="vax\vaxqript\MethodWrapper.cs" />
     <Compile Include="vax\vaxqript\Undefined.cs" />
     <Compile Include="vax\vaxqript\UndefinedVariableBehaviour.cs" />
-    <Compile Include="vax\vaxqript\ScriptMethod.cs" />
     <Compile Include="vax\vaxqript\IHoldable.cs" />
     <Compile Include="vax\vaxqript\ValueList.cs" />
     <Compile Include="vax\vaxqript\ObjectMethod.cs" />
@@ -79,6 +78,7 @@
     <Compile Include="vax\vaxqript\ArgumentGroup.cs" />
     <Compile Include="vax\vaxqript\AbstractSyntaxGroup.cs" />
     <Compile Include="vax\vaxqript\IntValue.cs" />
+    <Compile Include="vax\vaxqript\HoldFunctionWrapper.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

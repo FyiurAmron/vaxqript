@@ -1,7 +1,7 @@
 ﻿using System;
 
 namespace vax.vaxqript {
-    public class Function : IExecutable/*, IEvaluable*/ {
+    public class Function : IExecutable {/*, IEvaluable*/
         private IEvaluable evaluable;
         private Identifier[] identifiersMapping;
 
@@ -23,7 +23,7 @@ namespace vax.vaxqript {
             engine.pushFunction( this );
             object ret = _eval( engine );
             IExecutionFlow ief = ret as IExecutionFlow;
-            if ( ief != null ) {
+            if( ief != null ) {
                 ret = ief.getValue();
             }
             engine.popFunction();
@@ -31,16 +31,24 @@ namespace vax.vaxqript {
             return ret;
         }
 
+        private string tooFewArgumentsString ( int found, int required ) {
+            return "function called with too few arguments (" + found + " found, " + required + " required)";
+        }
+
         public dynamic exec ( Engine engine, params dynamic[] arguments ) {
             engine.setFunctionArguments( arguments );
             if( identifiersMapping != null ) {
-                int args = arguments.Length, ids = identifiersMapping.Length;
-                if ( args < ids ) {
-                    throw new InvalidOperationException("function called with too few arguments ("
-                        +args+" found, "+ids+" required)");
+                int ids = identifiersMapping.Length;
+                if( arguments == null || arguments.Length == 0 ) {
+                    throw new InvalidOperationException( tooFewArgumentsString( 0, ids ) );
                 }
-                for(int i = 0; i < ids; i++ ) {
-                    engine.setIdentifierValue( identifiersMapping[i], arguments[i] );
+                ValueList vl = arguments[0] as ValueList;
+                int args = vl.Count;
+                if( args < ids ) {
+                    throw new InvalidOperationException( tooFewArgumentsString( args, ids ) );
+                }
+                for( int i = 0; i < ids; i++ ) {
+                    engine.setIdentifierValue( identifiersMapping[i], vl[i] );
                 }
             }
             return eval( engine );

@@ -214,6 +214,25 @@ namespace vax.vaxqript {
             testRun( ss, engine );
         }
 
+        public static void test6 ( Engine engine ) {
+            string[] ss = {
+                "fun = {new vax.vaxqript.Function( `{($args0[0]) * 2} )}",
+                "fun(420)",
+                "fun",
+                "fun = (function( ($args0[0]) + 1 ))",
+                "fun(900)",
+                "fun(\"900\")",
+                "fun = (function(x,y){x*y})",
+                "try{fun(900)}catch{($ex.Message)}",
+                "try{fun}catch{($ex.Message)}",
+                "fun(2,5)",
+                "fun = ((x,y)=>{x*y})",
+                "try{fun(900)}catch{($ex.Message)}",
+                "fun(21,2)",
+            };
+            testRun( ss, engine );
+        }
+
         public static void testTime ( Engine engine ) {
             string s = "loops = 100_000;" +
                 "start = (vax.vaxqript.MiscUtils.getCurrentTimeMillis());" +

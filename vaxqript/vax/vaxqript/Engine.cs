@@ -235,6 +235,26 @@ namespace vax.vaxqript {
             return b.Value;
         }
 
+        private Function createFunction( object n, object m ) {
+            ISyntaxGroup isg = n as ISyntaxGroup;
+            if ( isg == null ) {
+                throw new InvalidOperationException("'function' requires its first argument to be either the function body or argument list");
+            }
+            var list = isg.getEvaluableList();
+            int count = list.Count;
+            Identifier[] ids = new Identifier[list.Count];
+            int i = 0;
+            foreach( IEvaluable iEva in list ) {
+                Identifier id = iEva as Identifier;
+                if ( id == null ) {
+                    throw new InvalidOperationException("'function' requires its argument list to be populated with Identifier instances only");
+                }
+                ids[i] = id;
+                i++;
+            }
+            return new Function( (IEvaluable) m, ids );
+        }
+
         protected void createDefaultVariables () {
             // TODO maybe create a 'sys' var set (similar to that in SC) so that they are both const and 'invisible'?
 
@@ -267,7 +287,6 @@ namespace vax.vaxqript {
                 elseId = new Identifier( "else" ),
                 catchId = new Identifier( "catch" ),
                 finallyId = new Identifier( "finally" );
-
 
             // note: below code fails to autoformat properly in Xamarin Studio IDE
             Dictionary<string,object> defaultVarsMap = new Dictionary<string,object> {
@@ -541,28 +560,12 @@ namespace vax.vaxqript {
                     }
                     throw new InvalidOperationException("mismatched amount of arguments (found "+objs.Length+"; expected 1, 3, 4, 5 or 6) in 'try' block");
                 }, HoldType.All ) },
-                {"function", new MethodWrapper( (objs)=> {
+                {"function", new MethodWrapper( (objs)=> { // TODO lambda operator '=>'
                     switch( objs.Length ) {
                     case 1:
-                        return new Function( (IEvaluable) objs[0]); // it has to be IEvaluable since we have Hold on it (HoldType.All)
+                        return new Function( (IEvaluable) objs[0] ); // it has to be IEvaluable since we have Hold on it (HoldType.All)
                     case 2:
-                        ISyntaxGroup isg = objs[0] as ISyntaxGroup;
-                        if ( isg == null ) {
-                            throw new InvalidOperationException("'function' requires its first argument to be either the function body or argument list");
-                        }
-                        var list = isg.getEvaluableList();
-                        int count = list.Count;
-                        Identifier[] ids = new Identifier[list.Count];
-                        int i = 0;
-                        foreach( IEvaluable iEva in list ) {
-                            Identifier id = iEva as Identifier;
-                            if ( id == null ) {
-                                throw new InvalidOperationException("'function' requires its argument list to be populated with Identifier instances only");
-                            }
-                            ids[i] = id;
-                            i++;
-                        }
-                        return new Function( (IEvaluable) objs[1], ids );
+                        return createFunction( objs[0], objs[1] );
                     }
                     throw new InvalidOperationException("wrong number of parameters for 'function' (expected 1 or 2, found "
                         +objs.Length+"' instead)");
@@ -807,7 +810,11 @@ namespace vax.vaxqript {
                         return list;
                     }
                 ), // 'typeof' operator
-                //new Operator( "=>"),
+                new Operator( "=>",
+                    (n) => new Function( (IEvaluable) n ), // it has to be IEvaluable since we have Hold on it (HoldType.All)
+                    (n,m) => createFunction( n, m ),
+                    HoldType.All
+                ),
                 //new Operator( "@", (n ) => "", (n,m) => m), // suppress return operator
                 //new Operator( "*&", () => callStack.Last.Previous.Previous.Value ),
                 ////regular unary/nary operators
