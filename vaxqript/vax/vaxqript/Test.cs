@@ -190,8 +190,6 @@ namespace vax.vaxqript {
                 "i", // -42
                 "i=0;do{i++;if(i>600){break 665}} while()", // 665
                 "i", // 601
-                "f:={z={$args0[0]};z*z}",
-                "f(111)",
             };
             testRun( ss, engine );
         }
@@ -219,21 +217,27 @@ namespace vax.vaxqript {
 
         public static void test6 ( Engine engine ) {
             string[] ss = {
-                "fun = {new vax.vaxqript.Function( `{($args0[0]) * 2} )}",
-                "fun(420)",
-                "fun",
-                "fun={new vax.vaxqript.Function({`(x*2)},{::(`x)})}",
-                "fun(420)",
-                "fun = (function( ($args0[0]) + 1 ))",
-                "fun(900)",
-                "fun(\"900\")",
-                "fun = (function(x,y){x*y})",
-                "try{fun(900)}catch{($ex.Message)}",
-                "try{fun}catch{($ex.Message)}",
-                "fun(2,5)",
-                "fun = ((x,y)=>{x*y})",
-                "try{fun(900)}catch{($ex.Message)}",
-                "fun(21,2)",
+                "f:={z={$args0[0]};z*z}",
+                "f(111)",
+                "f:={($args0[0])*($args0[0])}",
+                "f(111)",
+                "f = {new vax.vaxqript.Function( `{($args0[0]) * 2} )}",
+                "f(420)",
+                "f",
+                "f={new vax.vaxqript.Function({`(x*2)},{::(`x)})}",
+                "f(420)",
+                "f = (function( ($args0[0]) + 1 ))",
+                "f(900)",
+                "f(\"900\")",
+                "f = (function(x,y){x*y})",
+                "try{f(900)}catch{($ex.Message)}",
+                "try{f}catch{($ex.Message)}",
+                "f(2,5)",
+                "f = ((x,y)=>{x*y})",
+                "try{f(900)}catch{($ex.Message)}",
+                "f(21,2)",
+                "f=(x=>{x*x})",
+                "f(f(2", // 16
             };
             testRun( ss, engine );
         }

@@ -239,7 +239,12 @@ namespace vax.vaxqript {
         private Function createFunction( object n, object m ) {
             ISyntaxGroup isg = n as ISyntaxGroup;
             if ( isg == null ) {
-                throw new InvalidOperationException("'function' requires its first argument to be either the function body or argument list");
+                Identifier id = n as Identifier;
+                if( id != null ) {
+                    return new Function( (IEvaluable) m, id );
+                }
+                throw new InvalidOperationException("'function' requires its first argument to be either the function body (nullary function, only parameter)"
+                    +"or Identifier/argument list (n-ary)");
             }
             var list = isg.getEvaluableList();
             int count = list.Count;
