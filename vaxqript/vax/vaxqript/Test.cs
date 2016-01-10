@@ -160,6 +160,7 @@ namespace vax.vaxqript {
                 "testObj1 + 1", // 13
                 "vars := {$engine.globalVarsToString()};\"\"",
                 "println(\"!!! text output\"+\"\t\"+ 7);\"\"",
+                "(::2 3 5)::6 7"
             };
             testRun( ss, engine );
         }
@@ -209,7 +210,9 @@ namespace vax.vaxqript {
                 "try{throw (new System.ArithmeticException())}catch{($ex.Message)}",
                 "try{throw (new System.ArithmeticException())}catch(System.ArithmeticException excc){(excc.Message)}",
                 "try{throw (new System.Exception())}catch(System.ArithmeticException excc){(excc.Message)}",
-                "i=113;try{i=0;1/0}finally{i=13}"
+                "i=113;try{i=0;1/0}finally{i=13}",
+                "(new vax.vaxqript.Identifier(\"zzz\"))==(new vax.vaxqript.Identifier(\"zzz\"))", // false
+                "(new vax.vaxqript.Identifier(\"zzz\"))===(new vax.vaxqript.Identifier(\"zzz\"))", // true
             };
             testRun( ss, engine );
         }
@@ -219,7 +222,7 @@ namespace vax.vaxqript {
                 "fun = {new vax.vaxqript.Function( `{($args0[0]) * 2} )}",
                 "fun(420)",
                 "fun",
-                "f={new vax.vaxqript.Function({`(x*2)},{::(`x)})}",
+                "fun={new vax.vaxqript.Function({`(x*2)},{::(`x)})}",
                 "fun(420)",
                 "fun = (function( ($args0[0]) + 1 ))",
                 "fun(900)",

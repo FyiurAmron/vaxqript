@@ -68,6 +68,7 @@ namespace vax.vaxqript {
 
         public void popFunction () {
             functionStack.RemoveLast();
+            // TODO remove all scoped variables here
         }
 
 
@@ -815,7 +816,7 @@ namespace vax.vaxqript {
                     (n,m) => createFunction( n, m ),
                     HoldType.All
                 ),
-                //new Operator( "@", (n ) => "", (n,m) => m), // suppress return operator
+                new Operator( "@", (n ) => getIdentifierValue((Identifier)n), null, HoldType.All),
                 //new Operator( "*&", () => callStack.Last.Previous.Previous.Value ),
                 ////regular unary/nary operators
                 new Operator( "+",
@@ -867,6 +868,8 @@ namespace vax.vaxqript {
                 new Operator( "&&", null, (n, m ) => ((IEvaluable)n).eval(this) && ((IEvaluable)m).eval(this), HoldType.All ), // short-circuit op
                 new Operator( "==", null, (n, m ) => n == m ),
                 new Operator( "!=", null, (n, m ) => n != m ),
+                new Operator( "===", null, (n, m ) => n.Equals(m) ), // note: in JS, this would be more like above ==, and above == would be more or less this
+                new Operator( "!==", null, (n, m ) => !n.Equals(m) ),
                 new Operator( ">", null, (n, m ) => n > m ),
                 new Operator( ">=", null, (n, m ) => n >= m ),
                 new Operator( "<", null, (n, m ) => n < m ),
@@ -891,6 +894,7 @@ namespace vax.vaxqript {
                     }
                         
                     ValueWrapper wrap = n as ValueWrapper;
+                    if ( wrap != null ) {
                     dynamic o = wrap.Value;
                     if( o is Stack ) {
                         o.Push( m );
@@ -905,7 +909,8 @@ namespace vax.vaxqript {
                         o.Add( m );
                         return n;
                     }
-                    throw new InvalidOperationException();
+                    }
+                    throw new InvalidOperationException("found '"+n+"'");
                 }, HoldType.First ),
                 new Operator( "-=", null, (n, m ) => {
                     // since we have HoldType.First here
@@ -917,6 +922,7 @@ namespace vax.vaxqript {
                     }
 
                     ValueWrapper wrap = n as ValueWrapper;
+                    if ( wrap != null ) {
                     dynamic o = wrap.Value;
 
                     if( o is Stack ) {
@@ -932,7 +938,8 @@ namespace vax.vaxqript {
                         o.Remove( m );
                         return n;
                     }
-                    throw new InvalidOperationException();
+                    }
+                    throw new InvalidOperationException("found '"+n+"'");
                 }, HoldType.First ),
                 createAssignmentOperator( "*=", null, (n, m ) => n * m ),
                 createAssignmentOperator( "/=", null, (n, m ) => n / m ),

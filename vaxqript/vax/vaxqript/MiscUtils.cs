@@ -180,7 +180,10 @@ namespace vax.vaxqript {
         }
 
         public static object createNew ( Type type, ValueList args ) {
-            return createNew( type, ( args != null ) ? MiscUtils.toTypes( args ) : MiscUtils.NO_ARGUMENTS_TYPE, args.ToArray() );
+            if ( args == null ) {
+                return createNew( type, MiscUtils.NO_ARGUMENTS_TYPE, null );
+            }
+            return createNew( type, MiscUtils.toTypes( args ), args.ToArray() );
         }
     }
 }
