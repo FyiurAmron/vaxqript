@@ -46,6 +46,17 @@ namespace vax.vaxqript {
             }
         }
 
+        private void setFunctionArguments( Engine engine, int foundLength, IList argumentsList, params dynamic[] arguments ) {
+            if( localIdentifierMapping != null ) {
+                int ids = localIdentifierMapping.Length;
+                ensureArgumentCount( ids, foundLength );
+                for( int i = 0; i < ids; i++ ) {
+                    engine.setIdentifierValue( localIdentifierMapping[i], argumentsList[i] );
+                }
+            }
+            engine.setFunctionArguments( arguments );     
+        }
+
         public dynamic exec ( Engine engine, params dynamic[] arguments ) {
             if( arguments == null || arguments.Length == 0 ) {
                 if( localIdentifierMapping != null ) {
@@ -56,23 +67,9 @@ namespace vax.vaxqript {
 
             ValueList vl = arguments[0] as ValueList;
             if( vl != null ) {
-                if( localIdentifierMapping != null ) {
-                    int ids = localIdentifierMapping.Length;
-                    ensureArgumentCount( ids, vl.Count );
-                    for( int i = 0; i < ids; i++ ) {
-                        engine.setIdentifierValue( localIdentifierMapping[i], vl[i] );
-                    }
-                }
-                engine.setFunctionArguments( arguments );     
+                setFunctionArguments( engine, vl.Count, vl, arguments );
             } else { // we don't have our arguments wrapped - possibly a raw, unparenthesised expression
-                if( localIdentifierMapping != null ) {
-                    int ids = localIdentifierMapping.Length;
-                    ensureArgumentCount( ids, arguments.Length );
-                    for( int i = 0; i < ids; i++ ) {
-                        engine.setIdentifierValue( localIdentifierMapping[i], arguments[i] );
-                    }
-                }
-                engine.setFunctionArguments( new object[]{ arguments } );     
+                setFunctionArguments( engine, arguments.Length, arguments, new object[]{ arguments } );
             }
             return eval( engine );
         }
