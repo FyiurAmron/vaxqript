@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Globalization;
 
 namespace vax.vaxqript {
     public class MainClass {
         public static void Main ( string[] args ) {
+            Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
             try {
                 _Main( args );
             } catch (Exception ex) {
