@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Text;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace vax.vaxqript {
     public abstract class Lexer {
@@ -421,17 +422,17 @@ namespace vax.vaxqript {
                     float f;
                     double d;
                     if( !hasExp && !hasDot ) {
-                        if( int.TryParse( input, out i ) ) { // todo support more numeric types later on
+                        if( int.TryParse( input, NumberStyles.Integer, CultureInfo.InvariantCulture, out i ) ) { // todo support more numeric types later on
                             return new ValueWrapper( i );    
                         }
-                        if( long.TryParse( input, out l ) ) { // todo support more numeric types later on
+                        if( long.TryParse( input, NumberStyles.Integer, CultureInfo.InvariantCulture, out l ) ) { // todo support more numeric types later on
                             return new ValueWrapper( l );
                         }
                     }
-                    if( float.TryParse( input, out f ) ) {
+                    if( float.TryParse( input, NumberStyles.Float, CultureInfo.InvariantCulture,, out f ) ) {
                         return new ValueWrapper( f );
                     }
-                    if( double.TryParse( input, out d ) ) {
+                    if( double.TryParse( input, NumberStyles.Float, CultureInfo.InvariantCulture,, out d ) ) {
                         return new ValueWrapper( d );
                     }
                     return new UnknownElement( input );
