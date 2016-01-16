@@ -429,10 +429,10 @@ namespace vax.vaxqript {
                             return new ValueWrapper( l );
                         }
                     }
-                    if( float.TryParse( input, NumberStyles.Float, CultureInfo.InvariantCulture,, out f ) ) {
+                    if( float.TryParse( input, NumberStyles.Float, CultureInfo.InvariantCulture, out f ) ) {
                         return new ValueWrapper( f );
                     }
-                    if( double.TryParse( input, NumberStyles.Float, CultureInfo.InvariantCulture,, out d ) ) {
+                    if( double.TryParse( input, NumberStyles.Float, CultureInfo.InvariantCulture, out d ) ) {
                         return new ValueWrapper( d );
                     }
                     return new UnknownElement( input );
