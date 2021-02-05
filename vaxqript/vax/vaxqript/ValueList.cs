@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace vax.vaxqript {
     // note: not IEvaluable!
@@ -18,7 +17,7 @@ namespace vax.vaxqript {
         }
 
         public override string ToString () {
-            return "[" + MiscUtils.join( ",", this ) + "]";
+            return "[" + MiscUtils.join( this, "," ) + "]";
         }
 
         /*

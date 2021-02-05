@@ -206,8 +206,8 @@ namespace vax.vaxqript {
                 "try{1/0};\"\"",
                 "try{1/0}catch{($ex.Message)}",
                 "try{throw (new System.ArithmeticException())}catch{($ex.Message)}",
-                "try{throw (new System.ArithmeticException())}catch(System.ArithmeticException excc){(excc.Message)}",
-                "try{throw (new System.Exception())}catch(System.ArithmeticException excc){(excc.Message)}",
+                "try{throw (new System.ArithmeticException())}catch(System.ArithmeticException ex){(ex.Message)}",
+                "try{throw (new System.Exception())}catch(System.ArithmeticException ex){(ex.Message)}",
                 "i=113;try{i=0;1/0}finally{i=13}",
                 "(new vax.vaxqript.Identifier(\"zzz\"))==(new vax.vaxqript.Identifier(\"zzz\"))", // false
                 "(new vax.vaxqript.Identifier(\"zzz\"))===(new vax.vaxqript.Identifier(\"zzz\"))", // true
@@ -219,11 +219,13 @@ namespace vax.vaxqript {
             string[] ss = {
                 "f:={z={$args0[0]};z*z}",
                 "f(111)",
+                "f( (f(3)) )", // no function here - recursive calls have to be parenthesized x2
                 "f:={($args0[0])*($args0[0])}",
                 "f(111)",
                 "f = {new vax.vaxqript.Function( `{($args0[0]) * 2} )}",
                 "f(420)",
-                "f",
+                "f(f(3))", // function - recursive calls use normal syntax
+                "@f",
                 "f={new vax.vaxqript.Function({`(x*2)},{::(`x)})}",
                 "f(420)",
                 "f = (function( ($args0[0]) + 1 ))",

@@ -1,88 +1,10 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
-    <ProjectGuid>{5A03E3F3-F35E-4B85-89BD-ED6A588D704C}</ProjectGuid>
-    <OutputType>Exe</OutputType>
-    <RootNamespace>vaxqript</RootNamespace>
-    <AssemblyName>vaxqript</AssemblyName>
-    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG;</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Externalconsole>true</Externalconsole>
-    <PlatformTarget>x86</PlatformTarget>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
-    <DebugType>full</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release</OutputPath>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <Externalconsole>true</Externalconsole>
-    <PlatformTarget>x86</PlatformTarget>
-  </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Core" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="vax\vaxqript\Main.cs" />
-    <Compile Include="vax\vaxqript\Engine.cs" />
-    <Compile Include="vax\vaxqript\IEvaluable.cs" />
-    <Compile Include="vax\vaxqript\Identifier.cs" />
-    <Compile Include="vax\vaxqript\IScriptOperatorOverload.cs" />
-    <Compile Include="vax\vaxqript\ValueWrapper.cs" />
-    <Compile Include="vax\vaxqript\ISyntaxElement.cs" />
-    <Compile Include="vax\vaxqript\UnknownElement.cs" />
-    <Compile Include="vax\vaxqript\IExecutable.cs" />
-    <Compile Include="vax\vaxqript\Lexer.cs" />
-    <Compile Include="vax\vaxqript\LinearSyntax.cs" />
-    <Compile Include="vax\vaxqript\Operator.cs" />
-    <Compile Include="vax\vaxqript\HoldType.cs" />
-    <Compile Include="vax\vaxqript\Associativity.cs" />
-    <Compile Include="vax\vaxqript\MiscUtils.cs" />
-    <Compile Include="vax\vaxqript\CommentLine.cs" />
-    <Compile Include="vax\vaxqript\CommentBlock.cs" />
-    <Compile Include="vax\vaxqript\IWrapper.cs" />
-    <Compile Include="vax\vaxqript\Wrapper.cs" />
-    <Compile Include="vax\vaxqript\IComment.cs" />
-    <Compile Include="vax\vaxqript\MethodWrapper.cs" />
-    <Compile Include="vax\vaxqript\Undefined.cs" />
-    <Compile Include="vax\vaxqript\UndefinedVariableBehaviour.cs" />
-    <Compile Include="vax\vaxqript\IHoldable.cs" />
-    <Compile Include="vax\vaxqript\ValueList.cs" />
-    <Compile Include="vax\vaxqript\ObjectMethod.cs" />
-    <Compile Include="vax\vaxqript\CompositeIdentifier.cs" />
-    <Compile Include="vax\vaxqript\Test.cs" />
-    <Compile Include="vax\vaxqript\SyntaxFlow.cs" />
-    <Compile Include="vax\vaxqript\SyntaxFlowOperator.cs" />
-    <Compile Include="vax\vaxqript\IExecutionFlow.cs" />
-    <Compile Include="vax\vaxqript\ExecutionBreak.cs" />
-    <Compile Include="vax\vaxqript\ExecutionReturn.cs" />
-    <Compile Include="vax\vaxqript\ScriptReturnException.cs" />
-    <Compile Include="vax\vaxqript\SyntaxGroup.cs" />
-    <Compile Include="vax\vaxqript\SyntaxTreeBuilder.cs" />
-    <Compile Include="vax\vaxqript\ISyntaxGroup.cs" />
-    <Compile Include="vax\vaxqript\SeparatorSyntaxGroup.cs" />
-    <Compile Include="vax\vaxqript\Function.cs" />
-    <Compile Include="vax\vaxqript\ArgumentGroup.cs" />
-    <Compile Include="vax\vaxqript\AbstractSyntaxGroup.cs" />
-    <Compile Include="vax\vaxqript\IntValue.cs" />
-    <Compile Include="vax\vaxqript\HoldFunctionWrapper.cs" />
-  </ItemGroup>
-  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
-  <ItemGroup>
-    <Folder Include="vax\" />
-    <Folder Include="vax\vaxqript\" />
-  </ItemGroup>
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net5.0-windows</TargetFramework>
+        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+        <Deterministic>false</Deterministic>
+    </PropertyGroup>
+
 </Project>

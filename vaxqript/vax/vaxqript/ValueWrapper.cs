@@ -1,46 +1,50 @@
-using System;
 using System.Collections;
 using System.Text;
 
 namespace vax.vaxqript {
-    public class ValueWrapper : IWrapper {
-        public object Value { get; set; }
 
-        public dynamic eval ( Engine engine ) {
-            return Value;
-        }
+public class ValueWrapper : IWrapper {
+    public object Value { get; set; }
 
-        public ValueWrapper ( object value ) {
-            Value = value;
-        }
+    public dynamic eval( Engine engine ) {
+        return Value;
+    }
 
-        // TODO handle string instances specially (quote them!) OR add a StringWrapper : ValueWrapper extension maybe?
+    public ValueWrapper( object value ) {
+        Value = value;
+    }
 
-        private const char QUOTE_CHAR = '"';
-        // TODO get based on engine?
+    // TODO handle string instances specially (quote them!) OR add a StringWrapper : ValueWrapper extension maybe?
 
-        public string valueToString () {
-            if( Value == null )
+    private const char QUOTE_CHAR = '"';
+    // TODO get based on engine?
+
+    public string valueToString() {
+        switch ( Value ) {
+            case null:
                 return "null";
-            string s = Value as String;
-            if( s != null ) {
-                StringBuilder sb = new StringBuilder();
+            case string s: {
+                StringBuilder sb = new();
                 sb.Append( QUOTE_CHAR );
-                foreach( char c in s.ToCharArray() ) {
+                foreach ( char c in s ) {
                     sb.Append( Lexer.escape( c ) );
                 }
+
                 sb.Append( QUOTE_CHAR );
                 return sb.ToString();
             }
-            IEnumerable ie = Value as IEnumerable;
-            return ( ie == null ) ? Value.ToString() : MiscUtils.join( ",", ie );
+            default:
+                return ( Value is IEnumerable ie )
+                    ? ie.toString()
+                    : Value.ToString();
         }
+    }
 
-        public override string ToString () {
-            return ( Value != null )
-                 ? "/* " + Value.GetType().Name + " */ " + valueToString()
-                    : "/* null */ null";
-        }
+    public override string ToString() {
+        return ( Value != null )
+            ? "/* " + Value.GetType().Name + " */ " + valueToString()
+            : "/* null */ null";
     }
 }
 
+}
